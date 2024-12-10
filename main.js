@@ -15,6 +15,9 @@ app.whenReady().then(() => {
     { label: 'Item2', type: 'radio' },
     { label: 'Item3', type: 'radio', checked: true },
     { label: 'Item4', type: 'separator' }, // label doesn't appear to matter
+    { label: '❌ Item with Red X', type: 'normal' },
+    { label: '🟢 Item with Green Circle', type: 'normal' },
+    { label: 'Item4', type: 'separator' }, // label doesn't appear to matter
     { label: 'Item5', type: 'checkbox' },
     { label: 'Item6', type: 'checkbox', checked: true },
     {
