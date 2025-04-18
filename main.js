@@ -1,3 +1,16 @@
+const path = require('path');
+
+// Enable auto-reload in development mode
+if (process.env.NODE_ENV === 'development') {
+  console.log('Auto-reload enabled')
+  require('electron-reload')(path.join(__dirname), {
+    electron: path.join(__dirname, 'node_modules', '.bin', 'electron'),
+    awaitWriteFinish: true,
+  });
+} else {
+  console.log('Auto-reload disabled')
+}
+
 const { app, Tray, Menu, nativeImage } = require('electron/main')
 const { Notification } = require('electron');
 
