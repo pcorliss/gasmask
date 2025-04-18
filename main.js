@@ -1,4 +1,5 @@
 const { app, Tray, Menu, nativeImage } = require('electron/main')
+const { Notification } = require('electron');
 
 let tray
 
@@ -42,6 +43,20 @@ app.whenReady().then(() => {
     { label: 'Separator', type: 'separator' },
     { label: 'Settings', type: 'normal' },
     { label: 'Last Refreshed: 4 minutes ago', type: 'normal' },
+    {
+      label: 'Notifier Button',
+      type: 'normal',
+      click: async () => {
+        const NOTIFICATION_TITLE = 'Basic Notification'
+        const NOTIFICATION_BODY = 'Notification from the Main process'
+
+        new Notification({
+          title: NOTIFICATION_TITLE,
+          body: NOTIFICATION_BODY
+        }).show()
+      }
+    },
+
     // { label: '🟠 Item with Orange Circle', type: 'normal' },
     // { label: '❗ Red Exclamation', type: 'normal' },
 
