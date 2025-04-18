@@ -11,23 +11,43 @@ app.whenReady().then(() => {
 
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Item1', type: 'normal' },
-    { label: 'Item2', type: 'radio' },
-    { label: 'Item3', type: 'radio', checked: true },
-    { label: 'Item4', type: 'separator' }, // label doesn't appear to matter
-    { label: '❌ Item with Red X', type: 'normal' },
-    { label: '🟢 Item with Green Circle', type: 'normal' },
-    { label: 'Item4', type: 'separator' }, // label doesn't appear to matter
-    { label: 'Item5', type: 'checkbox' },
-    { label: 'Item6', type: 'checkbox', checked: true },
+    { label: 'GitBar', type: 'normal' },
+    { label: 'Separator', type: 'separator' },
+    // Note that the text is 
+    { label: 'My PRs', type: 'normal' },
+    { label: '🟢 feat(Stats): XYZ-123 Rework Stats f... ', type: 'normal' },
+    { label: '❌ chore: XYZ-456 Deploy latest', type: 'normal' },
+    { label: '⚠️ fix(Config): XYZ-789 Fix bug in con...', type: 'normal' },
     {
-      label: 'Submenu Item',
+      label: 'More (3)',
       submenu: [
         { label: 'Subitem1', type: 'normal' },
         { label: 'Subitem2', type: 'checkbox' },
         { label: 'Subitem3', type: 'radio', checked: true },
       ],
     },
+    { label: 'Separator', type: 'separator' },
+    { label: 'Team PRs', type: 'normal' },
+    { label: '🟢 feat(Stats): XYZ-123 Rework Stats f... ', type: 'normal' },
+    { label: '❌ chore: XYZ-456 Deploy latest', type: 'normal' },
+    { label: '⚠️ fix(Config): XYZ-789 Fix bug in con...', type: 'normal' },
+    {
+      label: 'More (3)',
+      submenu: [
+        { label: 'Subitem1', type: 'normal' },
+        { label: 'Subitem2', type: 'checkbox' },
+        { label: 'Subitem3', type: 'radio', checked: true },
+      ],
+    },
+    { label: 'Separator', type: 'separator' },
+    { label: 'Settings', type: 'normal' },
+    { label: 'Last Refreshed: 4 minutes ago', type: 'normal' },
+    // { label: '🟠 Item with Orange Circle', type: 'normal' },
+    // { label: '❗ Red Exclamation', type: 'normal' },
+
+    // { label: 'Item4', type: 'separator' }, // label doesn't appear to matter
+    // { label: 'Item5', type: 'checkbox' },
+    // { label: 'Item6', type: 'checkbox', checked: true },
   ]);
 
   tray.setToolTip('This is my application.')
