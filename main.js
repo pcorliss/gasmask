@@ -12,8 +12,7 @@ if (process.env.NODE_ENV === 'development') {
   console.log('Auto-reload disabled')
 }
 
-const { app, Tray, Menu, nativeImage } = require('electron/main')
-const { Notification } = require('electron');
+const { app, Tray, nativeImage } = require('electron/main')
 
 let tray
 

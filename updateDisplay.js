@@ -1,4 +1,4 @@
-const { Menu, app } = require('electron');
+const { Menu, app, Notification } = require('electron');
 
 function updateDisplay(tray) {
   const lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
@@ -38,7 +38,7 @@ function updateDisplay(tray) {
         console.log('Refreshing last refreshed label');
         startPeriodicUpdate(tray);
       },
-     },
+    },
     {
       label: 'Notifier Button',
       type: 'normal',
@@ -67,11 +67,6 @@ function updateDisplay(tray) {
 }
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
-
-function startPeriodicUpdate(tray) {
-  updateDisplay(tray);
-  setInterval(() => updateDisplay(tray), REFRESH_INTERVAL);
-}
 
 let updateIntervalId; // Store the interval ID globally
 
