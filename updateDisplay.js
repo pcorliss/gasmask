@@ -1,4 +1,5 @@
 const { Menu, app, Notification } = require('electron');
+const { queryGitHub } = require('./github');
 
 function updateDisplay(tray) {
   const lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
@@ -37,6 +38,11 @@ function updateDisplay(tray) {
       click: () => {
         console.log('Refreshing last refreshed label');
         startPeriodicUpdate(tray);
+
+        // Example usage
+        // queryGitHub('p8')
+        //   .then(data => console.log(JSON.stringify(data, null, 2)))
+        //   .catch(error => console.error('Error querying GitHub:', error));
       },
     },
     {

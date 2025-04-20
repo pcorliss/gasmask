@@ -1,31 +1,39 @@
-const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
 
-async function refreshGitHub(owner, repo, token) {
-  const url = `https://api.github.com/repos/${owner}/${repo}/pulls`;
+dotenv.config();
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-      },
-    });
+const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
+const GITHUB_TOKEN = process.env.GH_TOKEN; // Ensure your token is set in the environment
 
-    if (!response.ok) {
-      throw new Error(`GitHub API returned status ${response.status}: ${response.statusText}`);
-    }
+async function queryGitHub(author) {
+  const fetch = (await import('node-fetch')).default; // Dynamically import node-fetch
+  // Load the GraphQL query from the file
+  const query = fs.readFileSync(path.join(__dirname, 'pr_query.graphql'), 'utf8');
 
-    const pullRequests = await response.json();
-    return pullRequests.map(pr => ({
-      title: pr.title,
-      number: pr.number,
-      url: pr.html_url,
-      user: pr.user.login,
-    }));
-  } catch (error) {
-    console.error('Error fetching GitHub PRs:', error);
-    throw error;
+  const requestBody = query.replace('$author', author);
+
+  console.log('Request Body:', requestBody);
+
+  // Make the POST request
+  const response = await fetch(GITHUB_GRAPHQL_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({query: requestBody}),
+  });
+
+  // Parse the response
+  if (!response.ok) {
+    throw new Error(`GitHub API returned status ${response.status}: ${response.statusText}`);
   }
+
+  const data = await response.json();
+  return data;
 }
 
-module.exports = { refreshGitHub };
+module.exports = { queryGitHub };
+

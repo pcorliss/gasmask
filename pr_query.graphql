@@ -1,0 +1,30 @@
+{
+  search(
+    query: "is:pr is:open author:$author",
+    type: ISSUE, 
+    first: 10
+  ) {
+    edges {
+      node {
+        ... on PullRequest {
+          title
+          url
+          createdAt
+          repository {
+            nameWithOwner
+          }
+          reviewDecision
+          commits(last: 1) {
+            nodes {
+              commit {
+                statusCheckRollup {
+                  state
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
