@@ -20,6 +20,7 @@ const PR_APPROVAL_MAP = {
   "COMMENTED": "💬",
   "DISMISSED": "⚠️",
   "PENDING": "⏳",
+  "REVIEW_REQUIRED": "⏳",
   null: "",
 };
 
