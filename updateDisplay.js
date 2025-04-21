@@ -122,9 +122,8 @@ function updateTeamMembers() {
 }
 
 function updateDisplay(tray) {
-  updateTeamMembers();
-  // updateMyPRs(tray);
-  // updateTeamPRs(tray);
+  updateMyPRs(tray);
+  updateTeamPRs(tray);
 }
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -136,6 +135,9 @@ function startPeriodicUpdate(tray) {
   if (updateIntervalId) {
     clearInterval(updateIntervalId);
   }
+
+  updateTeamMembers();
+  setInterval(() => updateTeamMembers(), TEAM_REFRESH_INTERVAL);
 
   updateDisplay(tray);
   updateIntervalId = setInterval(() => updateDisplay(tray), REFRESH_INTERVAL);
