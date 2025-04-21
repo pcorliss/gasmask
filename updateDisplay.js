@@ -1,8 +1,9 @@
 const { Menu, app, Notification, shell } = require('electron');
-const { queryGitHub } = require('./github');
+const { queryGitHub, queryGitHubTeam } = require('./github');
 
 let myPRs = [];
 let teamPRs = [];
+let teamMembers = new Set();
 let lastRefreshedLabel = "Last Refreshed:";
 
 const PR_STATUS_MAP = {
@@ -87,7 +88,7 @@ function renderTaskBar(tray) {
   tray.setContextMenu(contextMenu);
 }
 
-function updateDisplay(tray) {
+function updateMyPRs(tray) {
   queryGitHub(process.env.GH_USER)
     .then((data) => {
       myPRs = data.data.search.edges.map((edge) => edge.node);
@@ -100,7 +101,34 @@ function updateDisplay(tray) {
     });
 }
 
+function updateTeamPRs(tray) {
+}
+
+function updateTeamMembers() {
+  process.env.GH_TEAMS.split(',').forEach((orgTeam) => {
+    const [org, team] = orgTeam.split('/');
+    queryGitHubTeam(org, team)
+      .then((data) => {
+        console.log('Adding Team Members:', data);
+        data.forEach((member) => {
+          teamMembers.add(member.login);
+        });
+        console.log('Team Member Set:', teamMembers);
+      })
+      .catch((error) => {
+        console.error('Error fetching PRs:', error);
+      });
+  })
+}
+
+function updateDisplay(tray) {
+  updateTeamMembers();
+  // updateMyPRs(tray);
+  // updateTeamPRs(tray);
+}
+
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const TEAM_REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes
 
 let updateIntervalId; // Store the interval ID globally
 

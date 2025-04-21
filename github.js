@@ -7,6 +7,28 @@ dotenv.config();
 const GITHUB_GRAPHQL_URL = process.env.GH_API_URL + '/graphql';
 const GITHUB_TOKEN = process.env.GH_TOKEN;
 
+async function queryGitHubTeam(org, team) {
+  const fetch = (await import('node-fetch')).default; // Dynamically import node-fetch
+  const url = process.env.GH_API_URL + `/orgs/${org}/teams/${team}/members`
+
+  console.log('URL:', url);
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  // Parse the response
+  if (!response.ok) {
+    throw new Error(`GitHub API returned status ${response.status}: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
 async function queryGitHub(author) {
   const fetch = (await import('node-fetch')).default; // Dynamically import node-fetch
   // Load the GraphQL query from the file
@@ -35,5 +57,5 @@ async function queryGitHub(author) {
   return data;
 }
 
-module.exports = { queryGitHub };
+module.exports = { queryGitHub, queryGitHubTeam };
 
