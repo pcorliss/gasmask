@@ -53,7 +53,7 @@ function renderPR(pr) {
   const ciStatus = PR_STATUS_MAP[pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state] || "";
   const approvalStatus = PR_APPROVAL_MAP[pr.reviewDecision] || "";
   const prTitleTruncated = pr.title.length > PR_TITLE_MAX_LENGTH ? pr.title.substring(0, PR_TITLE_MAX_LENGTH) + '...' : pr.title;
-  titleString = [ciStatus, approvalStatus, prTitleTruncated].join("|");
+  titleString = [ciStatus, approvalStatus, prTitleTruncated].filter(Boolean).join(" ");
   console.log(
     pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state,
     pr.reviewDecision,
