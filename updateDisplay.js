@@ -59,7 +59,14 @@ function renderPR(pr) {
     pr.reviewDecision,
     titleString
   );
-  return { label: titleString, type: 'normal' }
+  return {
+    label: titleString,
+    type: 'normal',
+    click: () => {
+      console.log('Opening PR:', pr.url);
+      require('electron').shell.openExternal(pr.url);
+    }
+  }
 }
 
 function renderTaskBar(tray) {
@@ -81,11 +88,11 @@ function renderTaskBar(tray) {
 }
 
 function updateDisplay(tray) {
-  lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
   queryGitHub(process.env.GH_USER)
     .then((data) => {
       myPRs = data.data.search.edges.map((edge) => edge.node);
       console.log('My PRs:', myPRs);
+      lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
       renderTaskBar(tray);
     })
     .catch((error) => {
