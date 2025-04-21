@@ -29,12 +29,12 @@ async function queryGitHubTeam(org, team) {
   return data;
 }
 
-async function queryGitHub(author) {
+async function queryGitHub(query) {
   const fetch = (await import('node-fetch')).default; // Dynamically import node-fetch
   // Load the GraphQL query from the file
-  const query = fs.readFileSync(path.join(__dirname, 'pr_query.graphql'), 'utf8');
+  const graphQuery = fs.readFileSync(path.join(__dirname, 'pr_query.graphql'), 'utf8');
 
-  const requestBody = query.replace('$author', author);
+  const requestBody = graphQuery.replace('$query', query);
 
   console.log('Request Body:', requestBody);
 

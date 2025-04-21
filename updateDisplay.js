@@ -89,7 +89,8 @@ function renderTaskBar(tray) {
 }
 
 function updateMyPRs(tray) {
-  queryGitHub(process.env.GH_USER)
+  query = `is:pr is:open author:${process.env.GH_USER}`;
+  queryGitHub(query)
     .then((data) => {
       myPRs = data.data.search.edges.map((edge) => edge.node);
       console.log('My PRs:', myPRs);
@@ -102,6 +103,26 @@ function updateMyPRs(tray) {
 }
 
 function updateTeamPRs(tray) {
+  console.log('Team Members:', teamMembers);
+  if (teamMembers.size != 0) {
+    console.log("Team Member Size is not 0");
+    let query = "is:pr is:open";
+    teamMembers.forEach(member => {
+      query += ` author:${member}`;
+    });
+    console.log("Query:", query);
+    queryGitHub(query)
+      .then((data) => {
+        teamPRs = data.data.search.edges.map((edge) => edge.node);
+        console.log('Team PRs:', teamPRs);
+        lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
+        renderTaskBar(tray);
+      })
+      .catch((error) => {
+        console.error('Error fetching PRs:', error);
+      });
+  }
+  console.log("Done updating team prs");
 }
 
 function updateTeamMembers() {
@@ -137,6 +158,7 @@ function startPeriodicUpdate(tray) {
   }
 
   updateTeamMembers();
+  // TODO need to unset the interval
   setInterval(() => updateTeamMembers(), TEAM_REFRESH_INTERVAL);
 
   updateDisplay(tray);

@@ -1,6 +1,6 @@
 {
   search(
-    query: "is:pr is:open author:$author",
+    query: "$query",
     type: ISSUE, 
     first: 10
   ) {
