@@ -1,4 +1,4 @@
-const { Menu, app, Notification } = require('electron');
+const { Menu, app, Notification, shell } = require('electron');
 const { queryGitHub } = require('./github');
 
 let myPRs = [];
@@ -64,7 +64,7 @@ function renderPR(pr) {
     type: 'normal',
     click: () => {
       console.log('Opening PR:', pr.url);
-      require('electron').shell.openExternal(pr.url);
+      shell.openExternal(pr.url);
     }
   }
 }
