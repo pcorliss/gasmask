@@ -1,75 +1,95 @@
 const { Menu, app, Notification } = require('electron');
 const { queryGitHub } = require('./github');
 
-function updateDisplay(tray) {
-  const lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
-  const contextMenu = Menu.buildFromTemplate([
-    { label: 'GitBar', type: 'normal' },
-    { label: 'Separator', type: 'separator' },
-    { label: 'My PRs', type: 'normal' },
-    { label: '🟢 feat(Stats): XYZ-123 Rework Stats f... ', type: 'normal' },
-    { label: '❌ chore: XYZ-456 Deploy latest', type: 'normal' },
-    { label: '⚠️ fix(Config): XYZ-789 Fix bug in con...', type: 'normal' },
-    {
-      label: 'More (3)',
-      submenu: [
-        { label: 'Subitem1', type: 'normal' },
-        { label: 'Subitem2', type: 'checkbox' },
-        { label: 'Subitem3', type: 'radio', checked: true },
-      ],
+let myPRs = [];
+let teamPRs = [];
+let lastRefreshedLabel = "Last Refreshed:";
+
+const PR_STATUS_MAP = {
+  "ERROR": "⚠️",
+  "EXPECTED": "🟠",
+  "FAILURE": "🔴",
+  "PENDING": "🟠",
+  "SUCCESS": "🟢",
+  null: "",
+};
+
+const PR_APPROVAL_MAP = {
+  "APPROVED": "✅",
+  "CHANGES_REQUESTED": "❌",
+  "COMMENTED": "💬",
+  "DISMISSED": "⚠️",
+  "PENDING": "⏳",
+  null: "",
+};
+
+const PR_TITLE_MAX_LENGTH = 50;
+
+const FOOTER = [
+  { label: 'Separator', type: 'separator' },
+  {
+    label: 'Quit',
+    type: 'normal',
+    click: () => {
+      console.log('Quitting application...');
+      app.quit(); // Quit the application
     },
+  },
+];
+
+function lastRefreshedSection(tray) {
+  return {
+    label: lastRefreshedLabel,
+    type: 'normal',
+    click: () => {
+      console.log('Refreshing last refreshed label');
+      startPeriodicUpdate(tray);
+    },
+  };
+}
+
+function renderPR(pr) {
+  const ciStatus = PR_STATUS_MAP[pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state] || "";
+  const approvalStatus = PR_APPROVAL_MAP[pr.reviewDecision] || "";
+  const prTitleTruncated = pr.title.length > PR_TITLE_MAX_LENGTH ? pr.title.substring(0, PR_TITLE_MAX_LENGTH) + '...' : pr.title;
+  titleString = [ciStatus, approvalStatus, prTitleTruncated].join("|");
+  console.log(
+    pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state,
+    pr.reviewDecision,
+    titleString
+  );
+  return { label: titleString, type: 'normal' }
+}
+
+function renderTaskBar(tray) {
+  let menuItems = [
+    { label: 'My PRs', type: 'normal' },
+    { label: 'Separator', type: 'separator' },
+    ...myPRs.map(renderPR),
     { label: 'Separator', type: 'separator' },
     { label: 'Team PRs', type: 'normal' },
-    { label: '🟢 feat(Stats): XYZ-123 Rework Stats f... ', type: 'normal' },
-    { label: '❌ chore: XYZ-456 Deploy latest', type: 'normal' },
-    { label: '⚠️ fix(Config): XYZ-789 Fix bug in con...', type: 'normal' },
-    {
-      label: 'More (3)',
-      submenu: [
-        { label: 'Subitem1', type: 'normal' },
-        { label: 'Subitem2', type: 'checkbox' },
-        { label: 'Subitem3', type: 'radio', checked: true },
-      ],
-    },
     { label: 'Separator', type: 'separator' },
-    { label: 'Settings', type: 'normal' },
-    { label: lastRefreshedLabel,
-      type: 'normal',
-      click: () => {
-        console.log('Refreshing last refreshed label');
-        startPeriodicUpdate(tray);
-
-        // Example usage
-        // queryGitHub('p8')
-        //   .then(data => console.log(JSON.stringify(data, null, 2)))
-        //   .catch(error => console.error('Error querying GitHub:', error));
-      },
-    },
-    {
-      label: 'Notifier Button',
-      type: 'normal',
-      click: async () => {
-        const NOTIFICATION_TITLE = 'Basic Notification';
-        const NOTIFICATION_BODY = 'Notification from the Main process';
-
-        new Notification({
-          title: NOTIFICATION_TITLE,
-          body: NOTIFICATION_BODY,
-        }).show();
-      },
-    },
+    ...teamPRs.map(renderPR),
     { label: 'Separator', type: 'separator' },
-    {
-      label: 'Quit',
-      type: 'normal',
-      click: () => {
-        console.log('Quitting application...');
-        app.quit(); // Quit the application
-      },
-    },
-  ]);
+    lastRefreshedSection(tray),
+    ...FOOTER,
+  ];
 
+  const contextMenu = Menu.buildFromTemplate(menuItems);
   tray.setContextMenu(contextMenu);
+}
+
+function updateDisplay(tray) {
+  lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
+  queryGitHub(process.env.GH_USER)
+    .then((data) => {
+      myPRs = data.data.search.edges.map((edge) => edge.node);
+      console.log('My PRs:', myPRs);
+      renderTaskBar(tray);
+    })
+    .catch((error) => {
+      console.error('Error fetching PRs:', error);
+    });
 }
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -77,12 +97,10 @@ const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 let updateIntervalId; // Store the interval ID globally
 
 function startPeriodicUpdate(tray) {
-  // Clear any existing interval
   if (updateIntervalId) {
     clearInterval(updateIntervalId);
   }
 
-  // Start a new interval
   updateDisplay(tray);
   updateIntervalId = setInterval(() => updateDisplay(tray), REFRESH_INTERVAL);
 }

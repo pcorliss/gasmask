@@ -4,8 +4,8 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
-const GITHUB_TOKEN = process.env.GH_TOKEN; // Ensure your token is set in the environment
+const GITHUB_GRAPHQL_URL = process.env.GH_API_URL + '/graphql';
+const GITHUB_TOKEN = process.env.GH_TOKEN;
 
 async function queryGitHub(author) {
   const fetch = (await import('node-fetch')).default; // Dynamically import node-fetch
