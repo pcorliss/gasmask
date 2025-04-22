@@ -4,7 +4,6 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const GITHUB_GRAPHQL_URL = process.env.GH_API_URL + '/graphql';
 const GITHUB_TOKEN = process.env.GH_TOKEN;
 
 async function queryGitHubTeam(org, team) {
@@ -39,7 +38,7 @@ async function queryGitHub(query) {
   console.log('Request Body:', requestBody);
 
   // Make the POST request
-  const response = await fetch(GITHUB_GRAPHQL_URL, {
+  const response = await fetch(process.env.GH_GRAPHQL_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${GITHUB_TOKEN}`,

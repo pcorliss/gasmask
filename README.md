@@ -10,6 +10,7 @@ Create an `.env` file with your configuration
 GH_TOKEN=ghp_userPAT
 GH_USER=yourUser
 GH_API_URL=https://api.github.com
+GH_GRAPHQL_URL=https://api.github.com/graphql
 GH_TEAMS=someOrg/someTeam
 ```
 
