@@ -23,7 +23,12 @@ npm start
 
 ### GitHub PAT Permissions
 
-...
+Create a [Personal access tokens (classic)](https://github.com/settings/tokens) with the following permissions.
+
+```
+repo
+read:org
+```
 
 ### Roadmap
 
@@ -32,8 +37,6 @@ npm start
   - [ ] MY PR Approvals
   - [ ] New Team PRs
   - [ ] Mentions
-- [ ] Determine minimial PAT permissions
-- [ ] Document PAT configuration
 - [ ] Get more info on a PR with a sub-menu
 - [ ] Merge my PRs via sub-menu
 - [ ] Other PR Group - Controlled via a custom search
