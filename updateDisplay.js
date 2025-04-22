@@ -125,7 +125,7 @@ function updateTeamPRs(tray) {
   console.log("Done updating team prs");
 }
 
-function updateTeamMembers() {
+function updateTeamMembers(tray) {
   process.env.GH_TEAMS.split(',').forEach((orgTeam) => {
     const [org, team] = orgTeam.split('/');
     queryGitHubTeam(org, team)
@@ -135,13 +135,13 @@ function updateTeamMembers() {
           teamMembers.add(member.login);
         });
         console.log('Team Member Set:', teamMembers);
+        teamMembers.delete(process.env.GH_USER);
+        console.log('Team After Filtering:', teamMembers);
+        updateDisplay(tray);
       })
       .catch((error) => {
         console.error('Error fetching PRs:', error);
       });
-
-    teamMembers.delete(process.env.GH_USER);
-    console.log('Team After Filtering:', teamMembers);
   })
 }
 
@@ -153,19 +153,22 @@ function updateDisplay(tray) {
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const TEAM_REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes
 
-let updateIntervalId; // Store the interval ID globally
+let displayIntervalId = null;
+let teamIntervalId = null;
 
 function startPeriodicUpdate(tray) {
-  if (updateIntervalId) {
-    clearInterval(updateIntervalId);
+  if (displayIntervalId) {
+    clearInterval(displayIntervalId);
+  }
+  if (teamIntervalId) {
+    clearInterval(teamIntervalId);
   }
 
-  updateTeamMembers();
-  // TODO need to unset the interval
-  setInterval(() => updateTeamMembers(), TEAM_REFRESH_INTERVAL);
+  updateTeamMembers(tray);
+  teamIntervalId = setInterval(() => updateTeamMembers(tray), TEAM_REFRESH_INTERVAL);
 
   updateDisplay(tray);
-  updateIntervalId = setInterval(() => updateDisplay(tray), REFRESH_INTERVAL);
+  displayIntervalId = setInterval(() => updateDisplay(tray), REFRESH_INTERVAL);
 }
 
 module.exports = { startPeriodicUpdate };
