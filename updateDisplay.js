@@ -139,6 +139,9 @@ function updateTeamMembers() {
       .catch((error) => {
         console.error('Error fetching PRs:', error);
       });
+
+    teamMembers.delete(process.env.GH_USER);
+    console.log('Team After Filtering:', teamMembers);
   })
 }
 
