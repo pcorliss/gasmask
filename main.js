@@ -24,5 +24,6 @@ app.whenReady().then(() => {
   tray = new Tray(icon);
 
   tray.setToolTip('This is my application.');
+  app.dock.hide()
   startPeriodicUpdate(tray);
 })
