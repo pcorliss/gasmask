@@ -3,6 +3,7 @@ const { queryGitHub, queryGitHubTeam } = require('./github');
 
 let myPRs = [];
 let teamPRs = [];
+let firstRun = true;
 let teamMembers = new Set();
 let lastRefreshedLabel = "Last Refreshed:";
 
@@ -92,8 +93,41 @@ function updateMyPRs(tray) {
   query = `is:pr is:open author:${process.env.GH_USER}`;
   queryGitHub(query)
     .then((data) => {
-      myPRs = data.data.search.edges.map((edge) => edge.node);
-      console.log('My PRs:', myPRs);
+      newPRs = data.data.search.edges.map((edge) => edge.node);
+      console.log('My PRs:', newPRs);
+      // Find PRs where CI status changed to red
+      newPRs.forEach((pr) => {
+        const previousPR = myPRs.find((p) => p.url === pr.url);
+        if (previousPR) {
+          const previousStatus = previousPR.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state;
+          const currentStatus = pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state;
+          if (previousStatus !== "FAILURE" && currentStatus === "FAILURE") {
+            const notification = new Notification({
+              title: "CI Failed",
+              body: `${pr.title} CI failure.`,
+              silent: false,
+            }).on('click', () => {
+              shell.openExternal(pr.url);
+            }
+            );
+            notification.show();
+          }
+
+          const previousApproval = previousPR.reviewDecision;
+          const currentApproval = pr.reviewDecision;
+          if (previousApproval != currentApproval) {
+            const notification = new Notification({
+              title: `PR ${currentApproval}`,
+              body: `${pr.title} PR ${previousApproval} -> ${currentApproval}.`,
+              silent: false,
+            }).on('click', () => {
+              shell.openExternal(pr.url);
+            });
+            notification.show();
+          }
+        }
+      });
+      myPRs = newPRs;
       lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
       renderTaskBar(tray);
     })
@@ -113,7 +147,25 @@ function updateTeamPRs(tray) {
     console.log("Query:", query);
     queryGitHub(query)
       .then((data) => {
-        teamPRs = data.data.search.edges.map((edge) => edge.node);
+        newPRs = data.data.search.edges.map((edge) => edge.node);
+
+        newPRs.forEach((pr) => {
+          const previousPR = teamPRs.find((p) => p.url === pr.url);
+          if (!previousPR && firstRun == false) {
+            const notification = new Notification({
+              title: "New Team PR",
+              body: `${pr.title}`,
+              silent: false,
+            }).on('click', () => {
+              shell.openExternal(pr.url);
+            });
+            notification.show();
+          }
+        });
+
+        firstRun = false;
+
+        teamPRs = newPRs
         console.log('Team PRs:', teamPRs);
         lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
         renderTaskBar(tray);
@@ -150,7 +202,7 @@ function updateDisplay(tray) {
   updateTeamPRs(tray);
 }
 
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const REFRESH_INTERVAL = process.env.REFRESH_INTERVAL * 1000;
 const TEAM_REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes
 
 let displayIntervalId = null;

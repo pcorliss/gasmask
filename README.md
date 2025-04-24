@@ -33,11 +33,12 @@ read:org
 ### Roadmap
 
 - [ ] Notifications
-  - [ ] My CI Failures
-  - [ ] MY PR Approvals
-  - [ ] New Team PRs
-  - [ ] Mentions
+  - [X] My CI Failures transition from anything -> Red
+  - [X] My PR Approvals transition from anything -> Approved
+  - [X] New Team PRs -> New Team PRs since last refresh
+  - [ ] Mentions & Team Mentions
 - [ ] Get more info on a PR with a sub-menu
+- [ ] Filter out drafts
 - [ ] Merge my PRs via sub-menu
 - [ ] Other PR Group - Controlled via a custom search
 - [ ] TypeScript rewrite
