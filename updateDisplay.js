@@ -202,7 +202,7 @@ function updateDisplay(tray) {
   updateTeamPRs(tray);
 }
 
-const REFRESH_INTERVAL = process.env.REFRESH_INTERVAL * 1000;
+const REFRESH_INTERVAL = (process.env.REFRESH_INTERVAL || 300) * 1000;
 const TEAM_REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes
 
 let displayIntervalId = null;
