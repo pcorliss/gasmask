@@ -3,6 +3,7 @@ const { queryGitHub, queryGitHubTeam } = require('./github');
 
 let myPRs = [];
 let teamPRs = [];
+let seenPRs = new Set();
 let firstRun = true;
 let teamMembers = new Set();
 let lastRefreshedLabel = "Last Refreshed:";
@@ -150,8 +151,7 @@ function updateTeamPRs(tray) {
         newPRs = data.data.search.edges.map((edge) => edge.node);
 
         newPRs.forEach((pr) => {
-          const previousPR = teamPRs.find((p) => p.url === pr.url);
-          if (!previousPR && firstRun == false) {
+          if (!seenPRs.has(pr.url) && firstRun == false) {
             const notification = new Notification({
               title: "New Team PR",
               body: `${pr.title}`,
@@ -164,6 +164,10 @@ function updateTeamPRs(tray) {
         });
 
         firstRun = false;
+
+        newPRs.forEach((pr) => {
+          seenPRs.add(pr.url);
+        });
 
         teamPRs = newPRs
         console.log('Team PRs:', teamPRs);
