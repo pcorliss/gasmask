@@ -38,7 +38,7 @@ read:org
   - [X] New Team PRs -> New Team PRs since last refresh
   - [ ] Mentions & Team Mentions
 - [ ] Get more info on a PR with a sub-menu
-- [ ] Filter out drafts
+- [X] Filter out team drafts
 - [ ] Merge my PRs via sub-menu
 - [ ] Other PR Group - Controlled via a custom search
 - [ ] TypeScript rewrite

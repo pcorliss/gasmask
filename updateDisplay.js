@@ -141,7 +141,7 @@ function updateTeamPRs(tray) {
   console.log('Team Members:', teamMembers);
   if (teamMembers.size != 0) {
     console.log("Team Member Size is not 0");
-    let query = "is:pr is:open";
+    let query = "is:pr is:open draft:false";
     teamMembers.forEach(member => {
       query += ` author:${member}`;
     });
