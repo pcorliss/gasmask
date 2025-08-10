@@ -137,10 +137,14 @@ function updateMyPRs(tray) {
     });
 }
 
+function isOldTeamPR(pr) {
+  const minCreatedAt = Math.min(...teamPRs.map(pr => pr.createdAtTime));
+  return pr.createdAtTime < minCreatedAt;
+}
+
 function updateTeamPRs(tray) {
   console.log('Team Members:', teamMembers);
   if (teamMembers.size != 0) {
-    console.log("Team Member Size is not 0");
     let query = "is:pr is:open draft:false";
     teamMembers.forEach(member => {
       query += ` author:${member}`;
@@ -151,7 +155,8 @@ function updateTeamPRs(tray) {
         newPRs = data.data.search.edges.map((edge) => edge.node);
 
         newPRs.forEach((pr) => {
-          if (!seenPRs.has(pr.url) && firstRun == false) {
+          pr.createdAtTime = new Date(pr.createdAt).getTime();
+          if (!seenPRs.has(pr.url) && !firstRun && !isOldTeamPR(pr)) {
             const notification = new Notification({
               title: "New Team PR",
               body: `${pr.title}`,
