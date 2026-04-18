@@ -43,9 +43,9 @@ read:org
 - [ ] Set icon for notifications
 - [ ] Merge my PRs via sub-menu
 - [ ] Other PR Group - Controlled via a custom search
-- [ ] TypeScript rewrite
+- [X] TypeScript rewrite
 - [ ] Properly organize
-- [ ] Test Coverage
+- [X] Test Coverage
 - [ ] Settings page insted of .env file
 - [ ] Package as a MacOS App
 - [ ] Cross Platform Support

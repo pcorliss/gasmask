@@ -71,7 +71,7 @@ export class GitHubService {
   }
 
   async searchPRs(searchQuery: string): Promise<SearchResponse> {
-    const graphQuery = fs.readFileSync(path.join(__dirname, "pr_query.graphql"), "utf8");
+    const graphQuery = fs.readFileSync(path.join(__dirname, "..", "pr_query.graphql"), "utf8");
     const requestBody = graphQuery.replace("$query", searchQuery);
 
     console.log("Request Body:", requestBody);
