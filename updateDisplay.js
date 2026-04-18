@@ -232,4 +232,18 @@ function startPeriodicUpdate(tray) {
   displayIntervalId = setInterval(() => updateDisplay(tray), REFRESH_INTERVAL);
 }
 
-module.exports = { startPeriodicUpdate };
+module.exports = {
+  startPeriodicUpdate,
+  renderPR,
+  renderTaskBar,
+  updateMyPRs,
+  updateTeamPRs,
+  isOldTeamPR,
+  lastRefreshedSection,
+  FOOTER,
+  PR_STATUS_MAP,
+  PR_APPROVAL_MAP,
+  PR_TITLE_MAX_LENGTH,
+  REFRESH_INTERVAL,
+  TEAM_REFRESH_INTERVAL,
+};
