@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 
-export interface GitHubMember {
+export type GitHubMember = {
   login: string;
-}
+};
 
 export interface CommitNode {
   commit: {
@@ -32,7 +32,7 @@ export interface SearchResponse {
   };
 }
 
-export interface TeamMembersResponse extends Array<GitHubMember> {}
+export type TeamMembersResponse = GitHubMember[];
 
 export class GitHubService {
   #token: string;
