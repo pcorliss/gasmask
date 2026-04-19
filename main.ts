@@ -32,6 +32,9 @@ function openSettingsWindow(): void {
   settingsWindow.on("closed", () => {
     settingsWindow = null;
   });
+
+  // Prevent settings window from quitting the app
+  settingsWindow.setMenu(null);
 }
 
 ipcMain.handle("get-settings", () => {
@@ -53,6 +56,11 @@ if (process.env.NODE_ENV === "development") {
 } else {
   console.log("Auto-reload disabled");
 }
+
+// Keep app running even when windows close (tray app)
+app.on("window-all-closed", () => {
+  // Don't quit on macOS - keep in tray
+});
 
 app.whenReady().then(() => {
   settingsManager = new SettingsManager();
