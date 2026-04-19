@@ -29,10 +29,6 @@ function openSettingsWindow(): void {
 
   settingsWindow.loadFile(path.join(rootDir, "settings.html"));
 
-  if (process.env.NODE_ENV === "development") {
-    settingsWindow.webContents.openDevTools();
-  }
-
   settingsWindow.on("closed", () => {
     settingsWindow = null;
   });

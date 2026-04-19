@@ -1,4 +1,4 @@
-import { Menu, app, shell, BrowserWindow } from "electron";
+import { Menu, app, shell } from "electron";
 import { CONFIG } from "./config";
 import type { PRNode } from "./github-service";
 
