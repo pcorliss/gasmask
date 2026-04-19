@@ -164,27 +164,19 @@ export class DisplayManager {
   }
 
   #render(): void {
-    // Always show base state even if no settings configured
     const myPRs = this.#state.myPRs;
     const teamPRs = this.#state.teamPRs;
     const lastRefreshedTime = this.#state.lastRefreshedTime;
 
-    try {
-      const menu = buildMenu({ myPRs, teamPRs, lastRefreshedTime }, this.#onOpenSettings);
-      this.#tray.setContextMenu(menu);
-    } catch (error) {
-      console.error("Error rendering menu:", error);
-      // Fallback minimal menu
-      const fallback = require("electron").Menu.buildFromTemplate([
-        { label: "Settings", click: this.#onOpenSettings },
-        { type: "separator" },
-        { label: "Quit", click: () => require("electron").app.quit() },
-      ]);
-      this.#tray.setContextMenu(fallback);
-    }
+    const menu = buildMenu({ myPRs, teamPRs, lastRefreshedTime }, this.#onOpenSettings);
+    console.log("Menu items:", menu.items.map((i: { label: string }) => i.label));
+    this.#tray.setContextMenu(menu);
   }
 
   #refresh(): void {
+    // Always render menu first (even if empty)
+    this.#render();
+
     void this.#updateMyPRs();
     void this.#updateTeamPRs();
   }
