@@ -40,7 +40,7 @@ read:org
 - [ ] Get more info on a PR with a sub-menu
 - [X] Filter out team drafts
 - [X] Don't notify on old PRs
-- [ ] Set icon for notifications
+- [X] Set icon for notifications
 - [ ] Merge my PRs via sub-menu
 - [ ] Other PR Group - Controlled via a custom search
 - [X] TypeScript rewrite

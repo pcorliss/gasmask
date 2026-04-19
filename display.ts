@@ -1,9 +1,12 @@
-import { Notification, shell } from "electron";
+import { Notification, shell, nativeImage } from "electron";
 import { GitHubService } from "./github-service";
 import type { PRNode } from "./github-service";
 import { PRState } from "./pr-state";
 import { CONFIG } from "./config";
 import { buildMenu } from "./renderer";
+import * as path from "path";
+
+const rootDir = path.join(__dirname, "..");
 
 export class DisplayManager {
   #tray: Electron.Tray;
@@ -19,10 +22,12 @@ export class DisplayManager {
   }
 
   #notify(title: string, body: string, url?: string): void {
+    const icon = nativeImage.createFromPath(path.join(rootDir, "static", "images", "gas-mask-16.png"));
     const notification = new Notification({
       title,
       body,
       silent: false,
+      icon: icon.isEmpty() ? undefined : icon,
     }).on("click", () => {
       if (url) shell.openExternal(url);
     });
