@@ -21,6 +21,13 @@ npm i
 npm start
 ```
 
+## Building Mac App
+
+```sh
+npm run pack
+cp -r release/mac-arm64/GasMask.app /Applications/
+```
+
 ### GitHub PAT Permissions
 
 Create a [Personal access tokens (classic)](https://github.com/settings/tokens) with the following permissions.

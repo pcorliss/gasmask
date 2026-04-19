@@ -1,13 +1,17 @@
 {
   "name": "gasmask",
   "version": "1.0.0",
+  "description": "TaskBar app to monitor GitHub PRs",
+  "author": "Philip Corliss",
   "main": "dist/main.js",
   "scripts": {
     "start": "NODE_ENV=development electron . --trace-warnings",
     "prestart": "npm run build",
     "build": "tsc",
     "lint": "eslint *.ts",
-    "test": "jest"
+    "test": "jest",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
   },
   "devDependencies": {
     "@types/electron": "^1.4.38",
@@ -16,6 +20,7 @@
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
     "electron": "^38.0.0",
+    "electron-builder": "^26.8.1",
     "electron-reload": "^2.0.0-alpha.1",
     "eslint": "^9.39.4",
     "eslint-plugin-import": "^2.32.0",
@@ -28,5 +33,21 @@
   "dependencies": {
     "dotenv": "^16.5.0",
     "node-fetch": "^3.3.2"
+  },
+  "build": {
+    "appId": "com.gasmask.app",
+    "productName": "GasMask",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "static/**/*",
+      "settings.html",
+      "pr_query.graphql"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    }
   }
 }
