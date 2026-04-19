@@ -44,6 +44,7 @@ ipcMain.handle("get-settings", () => {
 ipcMain.handle("save-settings", (_event, settings: AppSettings) => {
   if (displayManager) {
     displayManager.saveSettings(settings);
+    displayManager.refresh();
   }
 });
 
