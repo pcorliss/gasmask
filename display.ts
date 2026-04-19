@@ -69,6 +69,11 @@ export class DisplayManager {
   }
 
   async #updateMyPRs(): Promise<void> {
+    if (!process.env.GH_USER) {
+      console.log("Skipping My PRs - no GH_USER configured");
+      return;
+    }
+
     const query = `is:pr is:open author:${process.env.GH_USER}`;
 
     try {
@@ -87,6 +92,11 @@ export class DisplayManager {
   }
 
   async #updateTeamPRs(): Promise<void> {
+    if (this.#state.teamMembers.size === 0 || !process.env.GH_USER) {
+      console.log("Skipping Team PRs - no team members or no GH_USER");
+      return;
+    }
+
     console.log("Team Members:", this.#state.teamMembers);
 
     if (this.#state.teamMembers.size === 0) {
@@ -124,9 +134,15 @@ export class DisplayManager {
   }
 
   async #updateTeamMembers(): Promise<void> {
-    const orgTeams = (process.env.GH_TEAMS ?? "").split(",");
+    const orgTeams = (process.env.GH_TEAMS ?? "").split(",").filter(Boolean);
+
+    if (orgTeams.length === 0 || !process.env.GH_TOKEN) {
+      console.log("Skipping Team Members - no GH_TEAMS or no GH_TOKEN configured");
+      return;
+    }
 
     for (const orgTeam of orgTeams) {
+      if (!orgTeam.includes("/")) continue;
       const [org, team] = orgTeam.split("/");
 
       try {
@@ -148,12 +164,24 @@ export class DisplayManager {
   }
 
   #render(): void {
-    const menu = buildMenu({
-      myPRs: this.#state.myPRs,
-      teamPRs: this.#state.teamPRs,
-      lastRefreshedTime: this.#state.lastRefreshedTime,
-    }, this.#onOpenSettings);
-    this.#tray.setContextMenu(menu);
+    // Always show base state even if no settings configured
+    const myPRs = this.#state.myPRs;
+    const teamPRs = this.#state.teamPRs;
+    const lastRefreshedTime = this.#state.lastRefreshedTime;
+
+    try {
+      const menu = buildMenu({ myPRs, teamPRs, lastRefreshedTime }, this.#onOpenSettings);
+      this.#tray.setContextMenu(menu);
+    } catch (error) {
+      console.error("Error rendering menu:", error);
+      // Fallback minimal menu
+      const fallback = require("electron").Menu.buildFromTemplate([
+        { label: "Settings", click: this.#onOpenSettings },
+        { type: "separator" },
+        { label: "Quit", click: () => require("electron").app.quit() },
+      ]);
+      this.#tray.setContextMenu(fallback);
+    }
   }
 
   #refresh(): void {
