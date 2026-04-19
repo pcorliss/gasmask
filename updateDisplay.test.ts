@@ -136,13 +136,13 @@ describe("createFooter", () => {
 
 describe("lastRefreshedSection", () => {
   test("returns menu item with label", () => {
-    const result = lastRefreshedSection("10:00:00");
+    const result = lastRefreshedSection("10:00:00", () => {});
     expect(result.label).toBe("Last Refreshed: 10:00:00");
     expect(result.type).toBe("normal");
   });
 
   test("returns menu item with null time", () => {
-    const result = lastRefreshedSection(null);
+    const result = lastRefreshedSection(null, () => {});
     expect(result.label).toBe("Last Refreshed:");
   });
 });

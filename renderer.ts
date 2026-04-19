@@ -48,13 +48,11 @@ export function renderPR(pr: PRNode): MenuItem {
   };
 }
 
-export function lastRefreshedSection(lastRefreshedTime: string | null): MenuItem {
+export function lastRefreshedSection(lastRefreshedTime: string | null, onRefreshClick: () => void): MenuItem {
   return {
     label: lastRefreshedTime ? `Last Refreshed: ${lastRefreshedTime}` : "Last Refreshed:",
     type: "normal",
-    click: () => {
-      console.log("Refreshing last refreshed label");
-    },
+    click: onRefreshClick,
   };
 }
 
@@ -70,7 +68,11 @@ export interface RenderState {
   lastRefreshedTime: string | null;
 }
 
-export function renderTaskBar(state: RenderState, onSettingsClick: () => void): MenuItem[] {
+export function renderTaskBar(
+  state: RenderState,
+  onSettingsClick: () => void,
+  onRefreshClick: () => void
+): MenuItem[] {
   const menuItems: MenuItem[] = [
     { label: "My PRs", type: "normal" },
     { label: "Separator", type: "separator" },
@@ -80,14 +82,18 @@ export function renderTaskBar(state: RenderState, onSettingsClick: () => void): 
     { label: "Separator", type: "separator" },
     ...state.teamPRs.map(renderPR),
     { label: "Separator", type: "separator" },
-    lastRefreshedSection(state.lastRefreshedTime),
+    lastRefreshedSection(state.lastRefreshedTime, onRefreshClick),
     ...createFooter(onSettingsClick),
   ];
 
   return menuItems;
 }
 
-export function buildMenu(state: RenderState, onSettingsClick: () => void): Electron.Menu {
-  const template = renderTaskBar(state, onSettingsClick);
+export function buildMenu(
+  state: RenderState,
+  onSettingsClick: () => void,
+  onRefreshClick: () => void
+): Electron.Menu {
+  const template = renderTaskBar(state, onSettingsClick, onRefreshClick);
   return Menu.buildFromTemplate(template);
 }

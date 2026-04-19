@@ -34,8 +34,8 @@ export class DisplayManager {
 saveSettings(settings: AppSettings): void {
     this.#settings.save(settings);
     this.#settings.applyToEnv();
-    // Re-create GitHubService with new token
     this.#github = new GitHubService();
+    this.#state.reset();
   }
 
   #notify(title: string, body: string, url?: string): void {
@@ -170,7 +170,7 @@ saveSettings(settings: AppSettings): void {
     const teamPRs = this.#state.teamPRs;
     const lastRefreshedTime = this.#state.lastRefreshedTime;
 
-    const menu = buildMenu({ myPRs, teamPRs, lastRefreshedTime }, this.#onOpenSettings);
+    const menu = buildMenu({ myPRs, teamPRs, lastRefreshedTime }, this.#onOpenSettings, () => this.refresh());
     console.log("Menu items:", menu.items.map((i: { label: string }) => i.label));
     this.#tray.setContextMenu(menu);
   }
