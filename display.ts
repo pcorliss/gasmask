@@ -36,6 +36,7 @@ saveSettings(settings: AppSettings): void {
     this.#settings.applyToEnv();
     this.#github = new GitHubService();
     this.#state.reset();
+    this.startPeriodicUpdate();
   }
 
   #notify(title: string, body: string, url?: string): void {

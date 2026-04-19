@@ -58,8 +58,9 @@ read:org
 - [ ] Cross Platform Support
 - [ ] Some helpful error messaging when there are errors
 - [ ] Big Icon for GasMask
+- [ ] Differentiate PolicyBot PRs from Non
 
 #### Bugs
 - [ ] Team PRs broken after saving, probably until refresh
 - [ ] Auto Refresh stopped Working
-- [ ] Refresh option stopped working
+- [X] Refresh option stopped working

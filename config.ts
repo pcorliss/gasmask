@@ -11,7 +11,9 @@ export interface Config {
 }
 
 export const CONFIG: Config = {
-  refreshIntervalMs: (parseInt(process.env.REFRESH_INTERVAL ?? "300", 10) || 300) * 1000,
+  get refreshIntervalMs() {
+    return (parseInt(process.env.REFRESH_INTERVAL ?? "300", 10) || 300) * 1000;
+  },
   teamRefreshIntervalMs: 60 * 60 * 1000,
   titleMaxLength: 50,
   ciStatusEmoji: {
