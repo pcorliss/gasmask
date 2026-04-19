@@ -40,7 +40,7 @@ saveSettings(settings: AppSettings): void {
   }
 
   #notify(title: string, body: string, url?: string): void {
-    const icon = nativeImage.createFromPath(path.join(rootDir, "static", "images", "gas-mask-16.png"));
+    const icon = nativeImage.createFromPath(path.join(rootDir, "static", "images", "GasMask16.png"));
     const notification = new Notification({
       title,
       body,

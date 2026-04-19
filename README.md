@@ -61,6 +61,6 @@ read:org
 - [ ] Differentiate PolicyBot PRs from Non
 
 #### Bugs
-- [ ] Team PRs broken after saving, probably until refresh
-- [ ] Auto Refresh stopped Working
+- [X] Team PRs broken after saving, probably until refresh
+- [X] Auto Refresh stopped Working
 - [X] Refresh option stopped working

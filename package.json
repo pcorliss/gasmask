@@ -47,7 +47,8 @@
       "pr_query.graphql"
     ],
     "mac": {
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "icon": "static/images/GasMask512.png"
     }
   }
 }

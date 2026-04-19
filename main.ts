@@ -68,7 +68,7 @@ app.whenReady().then(() => {
   settingsManager = new SettingsManager();
   settingsManager.applyToEnv();
 
-  const icon = nativeImage.createFromPath(path.join(rootDir, "static", "images", "gas-mask-16.png"));
+  const icon = nativeImage.createFromPath(path.join(rootDir, "static", "images", "GasMask16.png"));
   const tray = new Tray(icon);
 
   (tray as Tray & { refresh: () => void }).refresh = () => displayManager.refresh();
