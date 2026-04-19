@@ -31,9 +31,11 @@ export class DisplayManager {
     return this.#settings.settings;
   }
 
-  saveSettings(settings: AppSettings): void {
+saveSettings(settings: AppSettings): void {
     this.#settings.save(settings);
     this.#settings.applyToEnv();
+    // Re-create GitHubService with new token
+    this.#github = new GitHubService();
   }
 
   #notify(title: string, body: string, url?: string): void {
