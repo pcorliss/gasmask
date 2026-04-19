@@ -57,7 +57,7 @@ read:org
 - [X] Package as a MacOS App
 - [ ] Cross Platform Support
 - [ ] Some helpful error messaging when there are errors
-- [ ] Big Icon for GasMask
+- [X] Big Icon for GasMask
 - [ ] Differentiate PolicyBot PRs from Non
 
 #### Bugs
