@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "dist/main.js",
   "scripts": {
-    "start": "npm run build && NODE_ENV=development electron . --trace-warnings",
+    "start": "NODE_ENV=development electron . --trace-warnings",
+    "prestart": "npm run build",
     "build": "tsc",
     "lint": "eslint *.ts",
     "test": "jest"
