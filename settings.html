@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>GasMask Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      min-width: 400px;
+    }
+    h1 { margin-top: 0; font-size: 18px; }
+    .field { margin-bottom: 15px; }
+    label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    input {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    input:focus { outline: none; border-color: #0078d4; }
+    .buttons { margin-top: 20px; display: flex; gap: 10px; }
+    button {
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .save { background: #0078d4; color: white; border: none; }
+    .save:hover { background: #106ebe; }
+    .cancel { background: #f0f0f0; border: 1px solid #ccc; }
+    .cancel:hover { background: #e0e0e0; }
+  </style>
+</head>
+<body>
+  <h1>GasMask Settings</h1>
+  
+  <div class="field">
+    <label>GitHub Token (PAT)</label>
+    <input type="password" id="GH_TOKEN" placeholder="ghp_xxxxxxxxxxxx">
+  </div>
+  
+  <div class="field">
+    <label>GitHub Username</label>
+    <input type="text" id="GH_USER" placeholder="your-username">
+  </div>
+  
+  <div class="field">
+    <label>GitHub API URL</label>
+    <input type="text" id="GH_API_URL" value="https://api.github.com">
+  </div>
+  
+  <div class="field">
+    <label>GraphQL URL</label>
+    <input type="text" id="GH_GRAPHQL_URL" value="https://api.github.com/graphql">
+  </div>
+  
+  <div class="field">
+    <label>Teams (comma-separated org/team)</label>
+    <input type="text" id="GH_TEAMS" placeholder="org/team1,org/team2">
+  </div>
+  
+  <div class="field">
+    <label>Refresh Interval (seconds)</label>
+    <input type="number" id="REFRESH_INTERVAL" value="300" min="60">
+  </div>
+  
+  <div class="buttons">
+    <button class="save" id="save">Save</button>
+    <button class="cancel" id="cancel">Cancel</button>
+  </div>
+
+  <script>
+    const fields = ['GH_TOKEN', 'GH_USER', 'GH_API_URL', 'GH_GRAPHQL_URL', 'GH_TEAMS', 'REFRESH_INTERVAL'];
+    
+    // Load settings from main process
+    window.electronAPI.getSettings().then(settings => {
+      fields.forEach(field => {
+        const el = document.getElementById(field);
+        if (settings[field] !== undefined) {
+          el.value = settings[field];
+        }
+      });
+    });
+    
+    document.getElementById('save').addEventListener('click', async () => {
+      const settings = {};
+      fields.forEach(field => {
+        const el = document.getElementById(field);
+        const value = el.value.trim();
+        settings[field] = field === 'REFRESH_INTERVAL' ? parseInt(value, 10) || 300 : value;
+      });
+      await window.electronAPI.saveSettings(settings);
+      window.close();
+    });
+    
+    document.getElementById('cancel').addEventListener('click', () => {
+      window.close();
+    });
+  </script>
+</body>
+</html>

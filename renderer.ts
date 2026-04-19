@@ -1,4 +1,4 @@
-import { Menu, app, shell } from "electron";
+import { Menu, app, shell, BrowserWindow } from "electron";
 import { CONFIG } from "./config";
 import type { PRNode } from "./github-service";
 
@@ -8,8 +8,13 @@ export interface MenuItem {
   click?: () => void;
 }
 
-export function createFooter(): MenuItem[] {
+export function createFooter(onSettingsClick: () => void): MenuItem[] {
   return [
+    {
+      label: "Settings",
+      type: "normal",
+      click: onSettingsClick,
+    },
     { label: "Separator", type: "separator" },
     {
       label: "Quit",
@@ -59,7 +64,13 @@ export interface RenderState {
   lastRefreshedTime: string | null;
 }
 
-export function renderTaskBar(state: RenderState): MenuItem[] {
+export interface RenderState {
+  myPRs: PRNode[];
+  teamPRs: PRNode[];
+  lastRefreshedTime: string | null;
+}
+
+export function renderTaskBar(state: RenderState, onSettingsClick: () => void): MenuItem[] {
   const menuItems: MenuItem[] = [
     { label: "My PRs", type: "normal" },
     { label: "Separator", type: "separator" },
@@ -70,13 +81,13 @@ export function renderTaskBar(state: RenderState): MenuItem[] {
     ...state.teamPRs.map(renderPR),
     { label: "Separator", type: "separator" },
     lastRefreshedSection(state.lastRefreshedTime),
-    ...createFooter(),
+    ...createFooter(onSettingsClick),
   ];
 
   return menuItems;
 }
 
-export function buildMenu(state: RenderState): Electron.Menu {
-  const template = renderTaskBar(state);
+export function buildMenu(state: RenderState, onSettingsClick: () => void): Electron.Menu {
+  const template = renderTaskBar(state, onSettingsClick);
   return Menu.buildFromTemplate(template);
 }

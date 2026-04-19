@@ -4,6 +4,7 @@ import type { PRNode } from "./github-service";
 import { PRState } from "./pr-state";
 import { CONFIG } from "./config";
 import { buildMenu } from "./renderer";
+import { SettingsManager, type AppSettings } from "./settings";
 import * as path from "path";
 
 const rootDir = path.join(__dirname, "..");
@@ -12,13 +13,27 @@ export class DisplayManager {
   #tray: Electron.Tray;
   #github: GitHubService;
   #state: PRState;
+  #settings: SettingsManager;
   #displayIntervalId: ReturnType<typeof setInterval> | null = null;
   #teamIntervalId: ReturnType<typeof setInterval> | null = null;
+  #onOpenSettings: () => void;
 
-  constructor(tray: Electron.Tray) {
+  constructor(tray: Electron.Tray, onOpenSettings: () => void) {
     this.#tray = tray;
+    this.#onOpenSettings = onOpenSettings;
+    this.#settings = new SettingsManager();
+    this.#settings.applyToEnv();
     this.#github = new GitHubService();
     this.#state = new PRState();
+  }
+
+  get settings(): AppSettings {
+    return this.#settings.settings;
+  }
+
+  saveSettings(settings: AppSettings): void {
+    this.#settings.save(settings);
+    this.#settings.applyToEnv();
   }
 
   #notify(title: string, body: string, url?: string): void {
@@ -137,7 +152,7 @@ export class DisplayManager {
       myPRs: this.#state.myPRs,
       teamPRs: this.#state.teamPRs,
       lastRefreshedTime: this.#state.lastRefreshedTime,
-    });
+    }, this.#onOpenSettings);
     this.#tray.setContextMenu(menu);
   }
 

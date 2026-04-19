@@ -122,13 +122,14 @@ describe("renderPR", () => {
 
 describe("createFooter", () => {
   test("is an array of menu items", () => {
-    expect(Array.isArray(createFooter())).toBe(true);
-    expect(createFooter().length).toBeGreaterThan(0);
+    expect(Array.isArray(createFooter(() => {}))).toBe(true);
+    expect(createFooter(() => {}).length).toBeGreaterThan(0);
   });
 
-  test("has separator and quit items", () => {
-    const labels = createFooter().map((item) => item.label);
+  test("has separator, settings, and quit items", () => {
+    const labels = createFooter(() => {}).map((item) => item.label);
     expect(labels).toContain("Separator");
+    expect(labels).toContain("Settings");
     expect(labels).toContain("Quit");
   });
 });

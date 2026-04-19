@@ -46,6 +46,6 @@ read:org
 - [X] TypeScript rewrite
 - [ ] Properly organize
 - [X] Test Coverage
-- [ ] Settings page insted of .env file
+- [X] Settings page insted of .env file
 - [ ] Package as a MacOS App
 - [ ] Cross Platform Support
