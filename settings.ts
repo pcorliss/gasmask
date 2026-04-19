@@ -1,8 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const rootDir = path.join(__dirname, "..");
-const settingsPath = path.join(rootDir, "settings.json");
+let settingsPath: string;
+
+export function setSettingsPath(userDataPath: string): void {
+  settingsPath = path.join(userDataPath, "settings.json");
+}
 
 export interface AppSettings {
   GH_TOKEN?: string;

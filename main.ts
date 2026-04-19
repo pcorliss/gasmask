@@ -1,7 +1,7 @@
 import * as path from "path";
 import { app, nativeImage, Tray, BrowserWindow, ipcMain } from "electron";
 import { DisplayManager } from "./display";
-import { type AppSettings, SettingsManager } from "./settings";
+import { type AppSettings, SettingsManager, setSettingsPath } from "./settings";
 
 const rootDir = path.join(__dirname, "..");
 
@@ -64,6 +64,7 @@ app.on("window-all-closed", () => {
 });
 
 app.whenReady().then(() => {
+  setSettingsPath(app.getPath("userData"));
   settingsManager = new SettingsManager();
   settingsManager.applyToEnv();
 
