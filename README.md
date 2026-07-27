@@ -12,7 +12,10 @@ GH_USER=yourUser
 GH_API_URL=https://api.github.com
 GH_GRAPHQL_URL=https://api.github.com/graphql
 GH_TEAMS=someOrg/someTeam
+MAX_PR_AGE_DAYS=14
 ```
+
+`MAX_PR_AGE_DAYS` is optional and unset by default. When set, PRs older than this many days (by creation date) are hidden from the tray menu.
 
 Run
 
