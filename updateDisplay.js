@@ -29,6 +29,16 @@ const PR_APPROVAL_MAP = {
 
 const PR_TITLE_MAX_LENGTH = 50;
 
+const MAX_PR_AGE_DAYS = process.env.MAX_PR_AGE_DAYS ? Number(process.env.MAX_PR_AGE_DAYS) : null;
+
+function isWithinMaxAge(pr) {
+  if (!MAX_PR_AGE_DAYS) {
+    return true;
+  }
+  const ageMs = Date.now() - new Date(pr.createdAt).getTime();
+  return ageMs <= MAX_PR_AGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
 const FOOTER = [
   { label: 'Separator', type: 'separator' },
   {
@@ -128,7 +138,7 @@ function updateMyPRs(tray) {
           }
         }
       });
-      myPRs = newPRs;
+      myPRs = newPRs.filter(isWithinMaxAge);
       lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
       renderTaskBar(tray);
     })
@@ -174,7 +184,7 @@ function updateTeamPRs(tray) {
           seenPRs.add(pr.url);
         });
 
-        teamPRs = newPRs
+        teamPRs = newPRs.filter(isWithinMaxAge);
         console.log('Team PRs:', teamPRs);
         lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
         renderTaskBar(tray);
