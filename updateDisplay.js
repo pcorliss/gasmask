@@ -1,5 +1,6 @@
 const { Menu, app, Notification, shell } = require('electron');
 const { queryGitHub, queryGitHubTeam } = require('./github');
+const { getPRReadiness, hasApproval } = require('./prStatus');
 
 let myPRs = [];
 let teamPRs = [];
@@ -7,6 +8,7 @@ let seenPRs = new Set();
 let firstRun = true;
 let teamMembers = new Set();
 let lastRefreshedLabel = "Last Refreshed:";
+let splitPRsByReadiness = process.env.SPLIT_PRS_BY_READINESS !== 'false';
 
 const PR_STATUS_MAP = {
   "ERROR": "⚠️",
@@ -14,16 +16,6 @@ const PR_STATUS_MAP = {
   "FAILURE": "🔴",
   "PENDING": "🟠",
   "SUCCESS": "🟢",
-  null: "",
-};
-
-const PR_APPROVAL_MAP = {
-  "APPROVED": "✅",
-  "CHANGES_REQUESTED": "❌",
-  "COMMENTED": "💬",
-  "DISMISSED": "⚠️",
-  "PENDING": "⏳",
-  "REVIEW_REQUIRED": "⏳",
   null: "",
 };
 
@@ -64,16 +56,14 @@ function lastRefreshedSection(tray) {
 
 function renderPR(pr) {
   const ciStatus = PR_STATUS_MAP[pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state] || "";
-  const approvalStatus = PR_APPROVAL_MAP[pr.reviewDecision] || "";
+  const readiness = getPRReadiness(pr);
   const prTitleTruncated = pr.title.length > PR_TITLE_MAX_LENGTH ? pr.title.substring(0, PR_TITLE_MAX_LENGTH) + '...' : pr.title;
-  titleString = [ciStatus, approvalStatus, prTitleTruncated].filter(Boolean).join(" ");
-  console.log(
-    pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state,
-    pr.reviewDecision,
-    titleString
-  );
+  const statusLabel = `${readiness.label} · ${readiness.policy.label}`;
+  const titleString = `${[ciStatus, statusLabel].filter(Boolean).join(' ')} — ${prTitleTruncated}`;
+  const reviewLabel = pr.reviewDecision || (hasApproval(pr) ? 'Has approval' : 'No approvals');
   return {
     label: titleString,
+    toolTip: `${pr.title}\n${readiness.policy.details}\nReviews: ${reviewLabel}\nMerge state: ${pr.mergeStateStatus || 'UNKNOWN'}`,
     type: 'normal',
     click: () => {
       console.log('Opening PR:', pr.url);
@@ -82,16 +72,50 @@ function renderPR(pr) {
   }
 }
 
+function renderPRSection(title, prs) {
+  if (!splitPRsByReadiness || prs.length === 0) {
+    return [
+      { label: `${title} (${prs.length})`, type: 'normal', enabled: false },
+      { type: 'separator' },
+      ...prs.map(renderPR),
+    ];
+  }
+
+  const groups = [
+    ['ready', 'Ready to merge'],
+    ['review', 'Needs review'],
+    ['blocked', 'Blocked / checking'],
+    ['draft', 'Drafts'],
+  ];
+  const items = [];
+  groups.forEach(([group, label]) => {
+    const groupedPRs = prs.filter(pr => getPRReadiness(pr).group === group);
+    if (groupedPRs.length === 0) return;
+    if (items.length > 0) items.push({ type: 'separator' });
+    items.push(
+      { label: `${title} — ${label} (${groupedPRs.length})`, type: 'normal', enabled: false },
+      { type: 'separator' },
+      ...groupedPRs.map(renderPR),
+    );
+  });
+  return items;
+}
+
 function renderTaskBar(tray) {
   let menuItems = [
-    { label: 'My PRs', type: 'normal' },
+    ...renderPRSection('My PRs', myPRs),
     { label: 'Separator', type: 'separator' },
-    ...myPRs.map(renderPR),
-    { label: 'Separator', type: 'separator' },
-    { label: 'Team PRs', type: 'normal' },
-    { label: 'Separator', type: 'separator' },
-    ...teamPRs.map(renderPR),
-    { label: 'Separator', type: 'separator' },
+    ...renderPRSection('Team PRs', teamPRs),
+    { type: 'separator' },
+    {
+      label: 'Split PRs by readiness',
+      type: 'checkbox',
+      checked: splitPRsByReadiness,
+      click: (menuItem) => {
+        splitPRsByReadiness = menuItem.checked;
+        renderTaskBar(tray);
+      },
+    },
     lastRefreshedSection(tray),
     ...FOOTER,
   ];

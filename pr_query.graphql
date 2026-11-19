@@ -10,15 +10,41 @@
           title
           url
           createdAt
+          isDraft
+          baseRefName
+          mergeable
+          mergeStateStatus
           repository {
             nameWithOwner
           }
           reviewDecision
+          latestOpinionatedReviews(first: 100, writersOnly: false) {
+            nodes {
+              state
+            }
+          }
           commits(last: 1) {
             nodes {
               commit {
                 statusCheckRollup {
                   state
+                  contexts(first: 100) {
+                    pageInfo {
+                      hasNextPage
+                    }
+                    nodes {
+                      ... on StatusContext {
+                        context
+                        state
+                        description
+                      }
+                      ... on CheckRun {
+                        name
+                        status
+                        conclusion
+                      }
+                    }
+                  }
                 }
               }
             }
