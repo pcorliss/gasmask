@@ -10,13 +10,9 @@ let teamMembers = new Set();
 let lastRefreshedLabel = "Last Refreshed:";
 let splitPRsByReadiness = process.env.SPLIT_PRS_BY_READINESS !== 'false';
 
-const PR_STATUS_MAP = {
+const PR_CHECK_ALERTS = {
   "ERROR": "⚠️",
-  "EXPECTED": "🟠",
   "FAILURE": "🔴",
-  "PENDING": "🟠",
-  "SUCCESS": "🟢",
-  null: "",
 };
 
 const PR_TITLE_MAX_LENGTH = 50;
@@ -55,15 +51,22 @@ function lastRefreshedSection(tray) {
 }
 
 function renderPR(pr) {
-  const ciStatus = PR_STATUS_MAP[pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state] || "";
+  const checkState = pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state;
   const readiness = getPRReadiness(pr);
   const prTitleTruncated = pr.title.length > PR_TITLE_MAX_LENGTH ? pr.title.substring(0, PR_TITLE_MAX_LENGTH) + '...' : pr.title;
-  const statusLabel = `${readiness.label} · ${readiness.policy.label}`;
-  const titleString = `${[ciStatus, statusLabel].filter(Boolean).join(' ')} — ${prTitleTruncated}`;
+  const details = [];
+  // Group headings cover the general status; keep specific blockers in the row.
+  if (!splitPRsByReadiness ||
+      (readiness.group === 'blocked' && readiness.policy.state !== 'failed') ||
+      (readiness.group === 'review' && pr.reviewDecision === 'CHANGES_REQUESTED')) {
+    details.push(readiness.label);
+  }
+  if (readiness.policy.state !== 'approved') details.push(readiness.policy.label);
+  const titleString = [PR_CHECK_ALERTS[checkState], prTitleTruncated].filter(Boolean).join(' ');
   const reviewLabel = pr.reviewDecision || (hasApproval(pr) ? 'Has approval' : 'No approvals');
   return {
-    label: titleString,
-    toolTip: `${pr.title}\n${readiness.policy.details}\nReviews: ${reviewLabel}\nMerge state: ${pr.mergeStateStatus || 'UNKNOWN'}`,
+    label: details.length ? `${titleString} — ${details.join(' · ')}` : titleString,
+    toolTip: `${pr.title}\n${readiness.label}\n${readiness.policy.details}\nChecks: ${checkState || 'No result'}\nReviews: ${reviewLabel}\nMerge state: ${pr.mergeStateStatus || 'UNKNOWN'}`,
     type: 'normal',
     click: () => {
       console.log('Opening PR:', pr.url);

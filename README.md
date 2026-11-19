@@ -31,12 +31,17 @@ in the tray menu to group each list into **Ready to merge**, **Needs review**, *
 and **Drafts**. Empty groups are hidden. Set `SPLIT_PRS_BY_READINESS=false` in `.env` to start
 with one list per section; menu changes last until the app exits.
 
+PR titles come first. In grouped mode, rows omit the status already shown in the heading.
+Specific blockers, requested changes, and pending or failed policy results remain beside the title.
+Failed checks retain an alert icon. Successful checks and policy approval are available on hover.
+With grouping off, each row also shows its readiness status.
+
 Policy status comes from `policy-bot` or `policy-bot: <target branch>` on the latest commit.
 **Policy approved** means policy-bot passed. **Ready to merge** also requires GitHub to report a
 clean, conflict-free merge, no outstanding required reviews, and passing checks (or no checks).
 Missing policy results are labelled explicitly; unknown or incomplete check data cannot establish
 readiness. On macOS, hover over a PR for the full policy result, review status, and merge state.
-The coloured circle shows the overall check status, which includes policy-bot.
+The check status includes policy-bot.
 
 ### GitHub PAT Permissions
 

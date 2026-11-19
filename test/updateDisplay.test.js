@@ -75,13 +75,19 @@ test('both PR lists split by readiness and retain policy details and links', asy
     'My PRs — Ready to merge (1)', 'My PRs — Needs review (1)', 'My PRs — Drafts (1)',
     'Team PRs — Ready to merge (1)', 'Team PRs — Needs review (1)', 'Team PRs — Blocked / checking (1)',
   ]) assert(labels.includes(label), label);
-  assert(!labels.some(label => label?.endsWith(' — old')));
-  const pending = app.menu().find(item => item.label?.endsWith(' — my-review'));
-  assert.match(pending.label, /Needs review · Policy pending/);
+  assert(!labels.some(label => label === 'old'));
+  for (const title of ['my-ready', 'team-ready', 'my-draft']) {
+    const item = app.menu().find(item => item.label === title);
+    assert(item, `The grouped row should show only the title: ${title}`);
+    assert.match(item.toolTip, /All rules are approved/);
+    assert.match(item.toolTip, /Checks: SUCCESS/);
+  }
+  const pending = app.menu().find(item => item.label?.startsWith('my-review'));
+  assert.equal(pending.label, 'my-review — Policy pending');
   assert.match(pending.toolTip, /0\/1 rules approved/);
   pending.click();
   assert.deepEqual(app.opened, [app.data.mine[1].url]);
-  assert.match(app.menu().find(item => item.label?.endsWith(' — team-behind')).label, /Update branch · Policy approved/);
+  assert(app.menu().some(item => item.label === 'team-behind — ⏳ Update branch'));
 });
 
 test('the menu toggle changes both lists without another GitHub request', async () => {
@@ -92,9 +98,11 @@ test('the menu toggle changes both lists without another GitHub request', async 
   assert(app.menu().some(item => item.label === 'My PRs (3)'));
   assert(app.menu().some(item => item.label === 'Team PRs (3)'));
   assert(!app.menu().some(item => item.label?.startsWith('Team PRs —')));
-  assert.match(app.menu().find(item => item.label?.endsWith(' — team-ready')).label, /Ready to merge · Policy approved/);
+  assert(app.menu().some(item => item.label === 'team-ready — ✅ Ready to merge'));
+  assert(app.menu().some(item => item.label === 'my-review — ⏳ Needs review · Policy pending'));
   app.menu().find(item => item.type === 'checkbox').click({ checked: true });
   assert(app.menu().some(item => item.label === 'Team PRs — Ready to merge (1)'));
+  assert(app.menu().some(item => item.label === 'team-ready'));
   assert.equal(app.queryCount(), queryCount);
 });
 
