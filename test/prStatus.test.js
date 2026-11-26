@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { getPolicyStatus, getPRReadiness, hasApproval } = require('../prStatus');
+const { getPolicyStatus, getPRReadiness, getTeamPRReadiness, getOtherChecks, getCheckState, hasApproval } = require('../prStatus');
 
 function pr({ checks, checkState = 'SUCCESS', hasNextPage = false, ...fields } = {}) {
   return {
@@ -116,4 +116,146 @@ test('native GitHub protections still apply when no policy result exists', () =>
 
 test('dismissed reviews do not count as approvals', () => {
   assert.equal(hasApproval(pr({ latestOpinionatedReviews: { nodes: [{ state: 'DISMISSED' }] } })), false);
+});
+
+const rebaseCases = [
+  [{ mergeStateStatus: 'BEHIND' }, '🔄 Rebase needed'],
+  [{ mergeStateStatus: 'DIRTY', mergeable: 'CONFLICTING' }, '🛠️ Rebase conflicts'],
+];
+
+for (const [fields, label] of rebaseCases) {
+  test(`approved Team PRs show ${label} in the ready group; My PRs remain blocked`, () => {
+    const pullRequest = pr(fields);
+    assert.equal(getTeamPRReadiness(pullRequest).group, 'ready');
+    assert.equal(getTeamPRReadiness(pullRequest).label, label);
+    assert.equal(getPRReadiness(pullRequest).group, 'blocked');
+  });
+}
+
+test('Team rebase grouping accepts native or individual approval when policy is absent', () => {
+  for (const [fields] of rebaseCases) {
+    for (const approval of [
+      { reviewDecision: 'APPROVED' },
+      { latestOpinionatedReviews: { nodes: [{ state: 'APPROVED' }] } },
+    ]) {
+      assert.equal(getTeamPRReadiness(pr({ ...fields, ...approval, checks: [] })).group, 'ready');
+    }
+  }
+});
+
+for (const [reason, fields] of [
+  ['no approval', { checks: [] }],
+  ['required reviews', { reviewDecision: 'REVIEW_REQUIRED' }],
+  ['requested changes', { reviewDecision: 'CHANGES_REQUESTED' }],
+  ['draft', { isDraft: true }],
+  ['pending policy', { reviewDecision: 'APPROVED', checks: [{ context: 'policy-bot: main', state: 'PENDING' }] }],
+  ['failed policy', { reviewDecision: 'APPROVED', checks: [{ context: 'policy-bot: main', state: 'FAILURE' }] }],
+  ['unknown policy', { hasNextPage: true }],
+  ['failed checks', { checkState: 'FAILURE' }],
+  ['pending checks', { checkState: 'PENDING' }],
+]) {
+  test(`Team rebase grouping does not hide ${reason}`, () => {
+    for (const [rebaseFields] of rebaseCases) {
+      assert.notEqual(getTeamPRReadiness(pr({ ...rebaseFields, ...fields })).group, 'ready');
+    }
+  });
+}
+
+test('Team rebase grouping does not bypass other merge blockers', () => {
+  for (const mergeStateStatus of ['BLOCKED', 'UNKNOWN', 'UNSTABLE', 'HAS_HOOKS']) {
+    assert.equal(getTeamPRReadiness(pr({ mergeStateStatus })).group, 'blocked');
+  }
+  assert.equal(getTeamPRReadiness(pr({ mergeStateStatus: 'BEHIND', mergeable: 'UNKNOWN' })).group, 'blocked');
+});
+
+test('other checks can pass while policy is pending', () => {
+  const pullRequest = pr({ checkState: 'PENDING', checks: [
+    { context: 'policy-bot: main', state: 'PENDING' },
+    { name: 'Build', status: 'COMPLETED', conclusion: 'SUCCESS' },
+  ] });
+  assert.equal(getPolicyStatus(pullRequest).state, 'pending');
+  assert.equal(getOtherChecks(pullRequest).state, 'passed');
+  assert.deepEqual(getOtherChecks(pullRequest).checks.map(check => check.name), ['Build']);
+});
+
+test('other checks distinguish absent, incomplete and failed results', () => {
+  assert.equal(getOtherChecks(pr()).state, 'none');
+  assert.equal(getOtherChecks(pr({ hasNextPage: true })).state, 'unknown');
+  assert.equal(getOtherChecks(pr({ checks: [{ name: 'Build', status: 'COMPLETED', conclusion: 'FAILURE' }] })).state, 'failed');
+});
+
+const workflowCheck = (runNumber, conclusion, fields = {}) => ({
+  name: 'Lint Pull Request Title & Body', status: 'COMPLETED', conclusion,
+  detailsUrl: `https://github.example/actions/runs/${runNumber}`,
+  checkSuite: { app: { id: 'github-actions' }, workflowRun: { runNumber, workflow: { id: 'linting-jobs' } } },
+  ...fields,
+});
+const approvedPolicy = { context: 'policy-bot: main', state: 'SUCCESS' };
+
+test('a successful newer workflow run supersedes a failed run on the same commit', () => {
+  const old = workflowCheck(10, 'FAILURE', { completedAt: '2026-11-26T13:30:00Z' });
+  const latest = workflowCheck(11, 'SUCCESS', { completedAt: '2026-11-26T13:21:31Z' });
+  for (const checks of [[old, latest, approvedPolicy], [approvedPolicy, latest, old]]) {
+    const pullRequest = pr({ checkState: 'FAILURE', checks });
+    assert.equal(getPRReadiness(pullRequest).group, 'ready');
+    assert.equal(getCheckState(pullRequest), 'SUCCESS');
+    assert.equal(getOtherChecks(pullRequest).state, 'passed');
+    assert.deepEqual(getOtherChecks(pullRequest).checks, [latest]);
+  }
+});
+
+test('a newer failed or running workflow cannot be hidden by an older success', () => {
+  for (const latest of [workflowCheck(11, 'FAILURE'), workflowCheck(11, null, { status: 'QUEUED' })]) {
+    const pullRequest = pr({ checkState: 'FAILURE', checks: [approvedPolicy, latest, workflowCheck(10, 'SUCCESS')] });
+    assert.equal(getPRReadiness(pullRequest).group, 'blocked');
+    assert.equal(getOtherChecks(pullRequest).state, latest.conclusion ? 'failed' : 'pending');
+    assert.equal(getCheckState(pullRequest), latest.conclusion ? 'FAILURE' : 'PENDING');
+  }
+});
+
+test('checks with the same name from different workflows or apps remain independent', () => {
+  for (const checkSuite of [
+    { app: { id: 'github-actions' }, workflowRun: { runNumber: 11, workflow: { id: 'another-workflow' } } },
+    { app: { id: 'another-app' }, workflowRun: { runNumber: 11, workflow: { id: 'linting-jobs' } } },
+    null,
+  ]) {
+    const pullRequest = pr({ checkState: 'FAILURE', checks: [approvedPolicy, workflowCheck(10, 'FAILURE'), workflowCheck(11, 'SUCCESS', { checkSuite })] });
+    assert.equal(getPRReadiness(pullRequest).group, 'blocked');
+    assert.equal(getOtherChecks(pullRequest).checks.length, 2);
+  }
+});
+
+test('ambiguous same-run duplicates and incomplete lists cannot establish readiness', () => {
+  const sameRun = pr({ checkState: 'FAILURE', checks: [approvedPolicy, workflowCheck(11, 'FAILURE'), workflowCheck(11, 'SUCCESS')] });
+  assert.equal(getPRReadiness(sameRun).group, 'blocked');
+  assert.equal(getOtherChecks(sameRun).checks.length, 2);
+  const truncated = pr({ checkState: 'FAILURE', hasNextPage: true, checks: [approvedPolicy, workflowCheck(10, 'FAILURE'), workflowCheck(11, 'SUCCESS')] });
+  assert.equal(getPRReadiness(truncated).group, 'blocked');
+  assert.equal(getCheckState(truncated), 'FAILURE');
+  assert.equal(getOtherChecks(truncated).state, 'unknown');
+  const missing = pr();
+  missing.commits.nodes[0].commit.statusCheckRollup.contexts.nodes = null;
+  assert.equal(getPRReadiness(missing).group, 'blocked');
+  assert.equal(getOtherChecks(missing).state, 'unknown');
+});
+
+test('superseded failures do not hide current failures, pending checks, or native blockers', () => {
+  const checks = [approvedPolicy, workflowCheck(10, 'FAILURE'), workflowCheck(11, 'SUCCESS')];
+  for (const current of [
+    { context: 'deploy', state: 'FAILURE' },
+    { context: 'deploy', state: 'PENDING' },
+    workflowCheck(11, 'FAILURE', { name: 'Build' }),
+  ]) assert.equal(getPRReadiness(pr({ checkState: 'FAILURE', checks: [...checks, current] })).group, 'blocked');
+  for (const mergeStateStatus of ['BLOCKED', 'DIRTY', 'BEHIND', 'UNKNOWN', 'UNSTABLE', 'HAS_HOOKS']) {
+    assert.equal(getPRReadiness(pr({ checkState: 'FAILURE', checks, mergeStateStatus })).group, 'blocked');
+  }
+  assert.equal(getPRReadiness(pr({ checkState: 'FAILURE', checks, reviewDecision: 'REVIEW_REQUIRED' })).group, 'review');
+});
+
+test('policy check runs and Team rebase grouping also use the current workflow results', () => {
+  const policyChecks = [workflowCheck(10, 'FAILURE', { name: 'policy-bot: main' }), workflowCheck(11, 'SUCCESS', { name: 'policy-bot: main' })];
+  assert.equal(getPolicyStatus(pr({ checkState: 'FAILURE', checks: policyChecks })).state, 'approved');
+  for (const [fields] of rebaseCases) {
+    assert.equal(getTeamPRReadiness(pr({ ...fields, checkState: 'FAILURE', checks: [approvedPolicy, workflowCheck(10, 'FAILURE'), workflowCheck(11, 'SUCCESS')] })).group, 'ready');
+  }
 });

@@ -1,49 +1,88 @@
-{
+query PullRequests($query: String!, $first: Int!, $after: String) {
   search(
-    query: "$query",
-    type: ISSUE, 
-    first: 10
+    query: $query,
+    type: ISSUE,
+    first: $first,
+    after: $after
   ) {
+    issueCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
     edges {
       node {
-        ... on PullRequest {
-          title
-          url
-          createdAt
-          isDraft
-          baseRefName
-          mergeable
-          mergeStateStatus
-          repository {
-            nameWithOwner
-          }
-          reviewDecision
-          latestOpinionatedReviews(first: 100, writersOnly: false) {
-            nodes {
-              state
+        ...PullRequestDetails
+      }
+    }
+  }
+}
+
+query PullRequestForMerge($id: ID!) {
+  node(id: $id) {
+    ...PullRequestDetails
+  }
+}
+
+fragment PullRequestDetails on PullRequest {
+  id
+  state
+  headRefOid
+  title
+  number
+  url
+  author {
+    login
+  }
+  createdAt
+  updatedAt
+  isDraft
+  baseRefName
+  mergeable
+  mergeStateStatus
+  repository {
+    name
+    nameWithOwner
+    viewerPermission
+    mergeCommitAllowed
+    squashMergeAllowed
+    rebaseMergeAllowed
+  }
+  reviewDecision
+  latestOpinionatedReviews(first: 100, writersOnly: false) {
+    nodes {
+      state
+      author {
+        login
+      }
+    }
+  }
+  commits(last: 1) {
+    nodes {
+      commit {
+        statusCheckRollup {
+          state
+          contexts(first: 100) {
+            pageInfo {
+              hasNextPage
             }
-          }
-          commits(last: 1) {
             nodes {
-              commit {
-                statusCheckRollup {
-                  state
-                  contexts(first: 100) {
-                    pageInfo {
-                      hasNextPage
-                    }
-                    nodes {
-                      ... on StatusContext {
-                        context
-                        state
-                        description
-                      }
-                      ... on CheckRun {
-                        name
-                        status
-                        conclusion
-                      }
-                    }
+              ... on StatusContext {
+                context
+                state
+                description
+                targetUrl
+              }
+              ... on CheckRun {
+                name
+                status
+                conclusion
+                detailsUrl
+                checkSuite {
+                  app { id }
+                  workflowRun {
+                    runNumber
+                    workflow { id }
                   }
                 }
               }
