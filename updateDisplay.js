@@ -1,12 +1,13 @@
-const { Menu, app, Notification, shell } = require('electron');
-const { queryGitHub, queryGitHubTeam } = require('./github');
-const { getPRReadiness, hasApproval } = require('./prStatus');
+const { Menu, app, shell } = require('electron');
+const { PRStore } = require('./prStore');
+const { getPRReadiness, getTeamPRReadiness, getCheckState, hasApproval } = require('./prStatus');
 
 let myPRs = [];
 let teamPRs = [];
-let seenPRs = new Set();
-let firstRun = true;
-let teamMembers = new Set();
+let activeStore;
+let onStoreChange;
+let openWindow = () => {};
+let trayState;
 let lastRefreshedLabel = "Last Refreshed:";
 let splitPRsByReadiness = process.env.SPLIT_PRS_BY_READINESS !== 'false';
 
@@ -19,17 +20,7 @@ const PR_STATUS_MAP = {
   null: "",
 };
 
-const PR_TITLE_MAX_LENGTH = 50;
-
-const MAX_PR_AGE_DAYS = process.env.MAX_PR_AGE_DAYS ? Number(process.env.MAX_PR_AGE_DAYS) : null;
-
-function isWithinMaxAge(pr) {
-  if (!MAX_PR_AGE_DAYS) {
-    return true;
-  }
-  const ageMs = Date.now() - new Date(pr.createdAt).getTime();
-  return ageMs <= MAX_PR_AGE_DAYS * 24 * 60 * 60 * 1000;
-}
+const PR_LABEL_MAX_LENGTH = 110;
 
 const FOOTER = [
   { label: 'Separator', type: 'separator' },
@@ -48,22 +39,33 @@ function lastRefreshedSection(tray) {
     label: lastRefreshedLabel,
     type: 'normal',
     click: () => {
-      console.log('Refreshing last refreshed label');
-      startPeriodicUpdate(tray);
+      activeStore.refresh();
     },
   };
 }
 
-function renderPR(pr) {
-  const ciStatus = PR_STATUS_MAP[pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state] || "";
-  const readiness = getPRReadiness(pr);
-  const prTitleTruncated = pr.title.length > PR_TITLE_MAX_LENGTH ? pr.title.substring(0, PR_TITLE_MAX_LENGTH) + '...' : pr.title;
-  const statusLabel = `${readiness.label} · ${readiness.policy.label}`;
-  const titleString = `${[ciStatus, statusLabel].filter(Boolean).join(' ')} — ${prTitleTruncated}`;
+function renderPR(pr, readiness, groupLabel) {
+  const ciStatus = PR_STATUS_MAP[getCheckState(pr)] || "";
+  const [readinessIcon, ...readinessWords] = readiness.label.split(' ');
+  const repeatsHeading = groupLabel &&
+    (readinessWords.join(' ') === groupLabel || readiness.group === 'draft');
+  const iconOnly = repeatsHeading || readiness.label === '🔄 Rebase needed';
+  const statusLabel = iconOnly ? `${readinessIcon} ${readiness.policy.label}` :
+    `${readiness.label} · ${readiness.policy.label}`;
+  const repoName = pr.repository?.name || pr.repository?.nameWithOwner?.split('/').pop();
+  const prReference = [repoName, pr.number && `#${pr.number}`].filter(Boolean).join('');
+  const prefix = `${[ciStatus, statusLabel].filter(Boolean).join(' ')} — ${prReference ? prReference + ': ' : ''}`;
+  // Spend the space saved by compact statuses on the title.
+  const titleBudget = Math.max(20, PR_LABEL_MAX_LENGTH - Array.from(prefix).length);
+  const titleCharacters = Array.from(pr.title);
+  const prTitleTruncated = titleCharacters.length > titleBudget ?
+    titleCharacters.slice(0, titleBudget - 1).join('') + '…' : pr.title;
+  const titleString = prefix + prTitleTruncated;
   const reviewLabel = pr.reviewDecision || (hasApproval(pr) ? 'Has approval' : 'No approvals');
+  const fullReference = `${pr.repository?.nameWithOwner || repoName || 'Unknown repository'}${pr.number ? '#' + pr.number : ''}`;
   return {
     label: titleString,
-    toolTip: `${pr.title}\n${readiness.policy.details}\nReviews: ${reviewLabel}\nMerge state: ${pr.mergeStateStatus || 'UNKNOWN'}`,
+    toolTip: `${pr.title}\n${fullReference}\nAuthor: ${pr.author?.login || 'Unknown'}\n${readiness.label}\n${readiness.policy.details}\nReviews: ${reviewLabel}\nMerge state: ${pr.mergeStateStatus || 'UNKNOWN'}`,
     type: 'normal',
     click: () => {
       console.log('Opening PR:', pr.url);
@@ -72,30 +74,37 @@ function renderPR(pr) {
   }
 }
 
-function renderPRSection(title, prs) {
+function renderPRSection(title, prs, { readyLast = false, getReadiness = getPRReadiness } = {}) {
+  const entries = prs.map(pr => ({ pr, readiness: getReadiness(pr) }));
   if (!splitPRsByReadiness || prs.length === 0) {
+    const orderedPRs = readyLast ? [
+      ...entries.filter(entry => entry.readiness.group !== 'ready'),
+      ...entries.filter(entry => entry.readiness.group === 'ready'),
+    ] : entries;
     return [
       { label: `${title} (${prs.length})`, type: 'normal', enabled: false },
       { type: 'separator' },
-      ...prs.map(renderPR),
+      ...orderedPRs.map(({ pr, readiness }) => renderPR(pr, readiness)),
     ];
   }
 
   const groups = [
-    ['ready', 'Ready to merge'],
     ['review', 'Needs review'],
     ['blocked', 'Blocked / checking'],
     ['draft', 'Drafts'],
   ];
+  const readyGroup = ['ready', 'Ready to merge'];
+  if (readyLast) groups.push(readyGroup);
+  else groups.unshift(readyGroup);
   const items = [];
   groups.forEach(([group, label]) => {
-    const groupedPRs = prs.filter(pr => getPRReadiness(pr).group === group);
+    const groupedPRs = entries.filter(entry => entry.readiness.group === group);
     if (groupedPRs.length === 0) return;
     if (items.length > 0) items.push({ type: 'separator' });
     items.push(
       { label: `${title} — ${label} (${groupedPRs.length})`, type: 'normal', enabled: false },
       { type: 'separator' },
-      ...groupedPRs.map(renderPR),
+      ...groupedPRs.map(({ pr, readiness }) => renderPR(pr, readiness, label)),
     );
   });
   return items;
@@ -103,9 +112,15 @@ function renderPRSection(title, prs) {
 
 function renderTaskBar(tray) {
   let menuItems = [
+    { label: 'Open GasMask…', click: () => openWindow() },
+    { type: 'separator' },
     ...renderPRSection('My PRs', myPRs),
+    { label: 'View all My PRs…', click: () => openWindow({ scope: 'mine' }) },
+    ...(trayState?.mine.error ? [{ label: 'My PRs refresh failed — retry', click: () => activeStore.refresh() }] : []),
     { label: 'Separator', type: 'separator' },
-    ...renderPRSection('Team PRs', teamPRs),
+    ...renderPRSection('Team PRs', teamPRs, { readyLast: true, getReadiness: getTeamPRReadiness }),
+    { label: 'View all Team PRs…', click: () => openWindow({ scope: 'team' }) },
+    ...(trayState?.team.error ? [{ label: 'Team PRs refresh failed — retry', click: () => activeStore.refresh() }] : []),
     { type: 'separator' },
     {
       label: 'Split PRs by readiness',
@@ -124,146 +139,21 @@ function renderTaskBar(tray) {
   tray.setContextMenu(contextMenu);
 }
 
-function updateMyPRs(tray) {
-  query = `is:pr is:open author:${process.env.GH_USER}`;
-  queryGitHub(query)
-    .then((data) => {
-      newPRs = data.data.search.edges.map((edge) => edge.node);
-      console.log('My PRs:', newPRs);
-      // Find PRs where CI status changed to red
-      newPRs.forEach((pr) => {
-        const previousPR = myPRs.find((p) => p.url === pr.url);
-        if (previousPR) {
-          const previousStatus = previousPR.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state;
-          const currentStatus = pr.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state;
-          if (previousStatus !== "FAILURE" && currentStatus === "FAILURE") {
-            const notification = new Notification({
-              title: "CI Failed",
-              body: `${pr.title} CI failure.`,
-              silent: false,
-            }).on('click', () => {
-              shell.openExternal(pr.url);
-            }
-            );
-            notification.show();
-          }
-
-          const previousApproval = previousPR.reviewDecision;
-          const currentApproval = pr.reviewDecision;
-          if (previousApproval != currentApproval) {
-            const notification = new Notification({
-              title: `PR ${currentApproval}`,
-              body: `${pr.title} PR ${previousApproval} -> ${currentApproval}.`,
-              silent: false,
-            }).on('click', () => {
-              shell.openExternal(pr.url);
-            });
-            notification.show();
-          }
-        }
-      });
-      myPRs = newPRs.filter(isWithinMaxAge);
-      lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
-      renderTaskBar(tray);
-    })
-    .catch((error) => {
-      console.error('Error fetching PRs:', error);
-    });
-}
-
-function isOldTeamPR(pr) {
-  const minCreatedAt = Math.min(...teamPRs.map(pr => pr.createdAtTime));
-  return pr.createdAtTime < minCreatedAt;
-}
-
-function updateTeamPRs(tray) {
-  console.log('Team Members:', teamMembers);
-  if (teamMembers.size != 0) {
-    let query = "is:pr is:open draft:false";
-    teamMembers.forEach(member => {
-      query += ` author:${member}`;
-    });
-    console.log("Query:", query);
-    queryGitHub(query)
-      .then((data) => {
-        newPRs = data.data.search.edges.map((edge) => edge.node);
-
-        newPRs.forEach((pr) => {
-          pr.createdAtTime = new Date(pr.createdAt).getTime();
-          if (!seenPRs.has(pr.url) && !firstRun && !isOldTeamPR(pr)) {
-            const notification = new Notification({
-              title: "New Team PR",
-              body: `${pr.title}`,
-              silent: false,
-            }).on('click', () => {
-              shell.openExternal(pr.url);
-            });
-            notification.show();
-          }
-        });
-
-        firstRun = false;
-
-        newPRs.forEach((pr) => {
-          seenPRs.add(pr.url);
-        });
-
-        teamPRs = newPRs.filter(isWithinMaxAge);
-        console.log('Team PRs:', teamPRs);
-        lastRefreshedLabel = `Last Refreshed: ${new Date().toLocaleTimeString()}`;
-        renderTaskBar(tray);
-      })
-      .catch((error) => {
-        console.error('Error fetching PRs:', error);
-      });
-  }
-  console.log("Done updating team prs");
-}
-
-function updateTeamMembers(tray) {
-  process.env.GH_TEAMS.split(',').forEach((orgTeam) => {
-    const [org, team] = orgTeam.split('/');
-    queryGitHubTeam(org, team)
-      .then((data) => {
-        console.log('Adding Team Members:', data);
-        data.forEach((member) => {
-          teamMembers.add(member.login);
-        });
-        console.log('Team Member Set:', teamMembers);
-        teamMembers.delete(process.env.GH_USER);
-        console.log('Team After Filtering:', teamMembers);
-        updateDisplay(tray);
-      })
-      .catch((error) => {
-        console.error('Error fetching PRs:', error);
-      });
-  })
-}
-
-function updateDisplay(tray) {
-  updateMyPRs(tray);
-  updateTeamPRs(tray);
-}
-
-const REFRESH_INTERVAL = (process.env.REFRESH_INTERVAL || 300) * 1000;
-const TEAM_REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes
-
-let displayIntervalId = null;
-let teamIntervalId = null;
-
-function startPeriodicUpdate(tray) {
-  if (displayIntervalId) {
-    clearInterval(displayIntervalId);
-  }
-  if (teamIntervalId) {
-    clearInterval(teamIntervalId);
-  }
-
-  updateTeamMembers(tray);
-  teamIntervalId = setInterval(() => updateTeamMembers(tray), TEAM_REFRESH_INTERVAL);
-
-  updateDisplay(tray);
-  displayIntervalId = setInterval(() => updateDisplay(tray), REFRESH_INTERVAL);
+function startPeriodicUpdate(tray, { store = new PRStore(), showWindow = () => {} } = {}) {
+  if (activeStore && onStoreChange) activeStore.off('change', onStoreChange);
+  activeStore = store;
+  openWindow = showWindow;
+  onStoreChange = () => {
+    trayState = store.getTraySnapshot();
+    myPRs = trayState.mine.prs;
+    teamPRs = trayState.team.prs;
+    const lastUpdate = Math.max(trayState.mine.updatedAt || 0, trayState.team.updatedAt || 0);
+    lastRefreshedLabel = lastUpdate ? `Last Refreshed: ${new Date(lastUpdate).toLocaleTimeString()}` : 'Refreshing…';
+    renderTaskBar(tray);
+  };
+  store.on('change', onStoreChange);
+  onStoreChange();
+  store.start();
 }
 
 module.exports = { startPeriodicUpdate };

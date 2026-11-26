@@ -1,47 +1,55 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Tray</title>
-  </head>
-  <body>
-    <div>
-      <h1>Tray</h1>
-      <h3>
-        The <code>tray</code> module allows you to create an icon in the
-        operating system's notification area.
-      </h3>
-      <p>This icon can also have a context menu attached.</p>
-
-      <p>
-        Open the
-        <a href="https://www.electronjs.org/docs/latest/api/tray">
-          full API documentation
-        </a>
-        in your browser.
-      </p>
-    </div>
-      <div>
-          <div>
-            <h2>ProTip</h2>
-            <strong>Tray support in Linux.</strong>
-            <p>
-              On Linux distributions that only have app indicator support, users
-              will need to install <code>libappindicator1</code> to make the
-              tray icon work. See the
-              <a href="https://www.electronjs.org/docs/latest/api/tray">
-                full API documentation
-              </a>
-              for more details about using Tray on Linux.
-            </p>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>GasMask</title>
+  <link rel="stylesheet" href="window.css">
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <div class="window-chrome" aria-hidden="true">GasMask</div>
+  <div class="app-layout">
+    <aside class="sidebar" aria-label="PR views">
+      <div class="brand"><img src="static/images/gas-mask-24.png" alt="" width="24" height="24"><strong>GasMask</strong></div>
+      <div class="nav-label">PULL REQUESTS</div>
+      <nav>
+        <button class="nav-item active" data-scope="mine" aria-current="page">My PRs</button>
+        <button class="nav-item" data-scope="team">Team PRs</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="running-dot"></span> Watching in the background<p>Closing this window keeps your tray and notifications running.</p></div>
+    </aside>
+    <main>
+      <header class="page-header">
+        <div><div class="eyebrow">YOUR REVIEW WORKSPACE</div><h1 id="view-title">My PRs</h1><p id="view-description">All open pull requests, including older work.</p></div>
+        <button id="refresh" class="button secondary" title="Refresh this view"><span aria-hidden="true">↻</span> Refresh</button>
+      </header>
+      <form id="filters" class="filters" aria-label="Filter open pull requests">
+        <label class="search-field"><span>Search</span><input id="search" type="search" placeholder="Title or #number" maxlength="200" autocomplete="off" aria-keyshortcuts="Meta+K Control+K"></label>
+        <label class="org-field"><span>Organization</span><input id="organization" list="organizations" placeholder="All organizations" maxlength="200" autocomplete="off"><datalist id="organizations"></datalist></label>
+        <label class="repo-field"><span>Repository</span><input id="repository" list="repositories" placeholder="Choose organization" maxlength="200" autocomplete="off" disabled><datalist id="repositories"></datalist></label>
+        <label id="author-field"><span>Author</span><select id="author"><option value="">All team members</option></select></label>
+        <label><span>Created</span><select id="age"><option value="all">Any time</option><option value="recent">Last 14 days</option><option value="older">Over 14 days ago</option></select></label>
+        <button type="button" id="clear-filters" class="text-button">Clear</button>
+      </form>
+      <div id="readiness-filters" class="readiness-filters" aria-label="Filter loaded PRs by readiness"></div>
+      <div id="error" class="error-banner" role="alert" hidden><span id="error-text"></span><button id="retry" class="text-button">Retry</button></div>
+      <div id="notice" class="notice-banner" role="status" hidden></div>
+      <div id="workspace" class="workspace">
+        <section class="list-pane" aria-label="Pull requests">
+          <div id="list-scroll" class="list-scroll" tabindex="-1">
+            <table id="pr-table" aria-label="Open pull requests">
+              <thead><tr><th scope="col">Pull request</th><th scope="col">Policy</th><th scope="col" title="Checks other than policy-bot">Other checks</th><th scope="col" class="updated-column">Updated</th></tr></thead>
+              <tbody id="pr-rows"></tbody>
+            </table>
+            <div id="empty" class="empty-state"><div class="empty-icon" aria-hidden="true">◎</div><h2 id="empty-title">Loading your PRs</h2><p id="empty-description">Connecting to GitHub…</p></div>
           </div>
-        </div>
+          <footer class="list-footer"><div><div id="result-count" role="status" aria-live="polite">Loading…</div><div id="sync-status" class="muted">Groups reflect loaded results.</div></div><button id="load-more" class="button secondary" hidden>Load more</button></footer>
+        </section>
+        <aside id="detail-panel" class="detail-panel" aria-label="Selected pull request" hidden></aside>
       </div>
-    </div>
-
-    <script>
-      // You can also require other files to run in this process
-      require("./renderer.js");
-    </script>
-  </body>
+    </main>
+  </div>
+</body>
 </html>

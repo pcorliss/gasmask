@@ -4,7 +4,8 @@
   "main": "main.js",
   "scripts": {
     "start": "NODE_ENV=development electron . --trace-warnings",
-    "test": "node --test"
+    "test": "node --test",
+    "test:window": "electron test-support/window-smoke.cjs"
   },
   "devDependencies": {
     "electron": "^33.2.1",
